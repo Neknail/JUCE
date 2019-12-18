@@ -27,19 +27,19 @@
 #pragma once
 
 #include "jucer_JucerDocument.h"
-#include "paintelements/jucer_PaintElement.h"
+#include "PaintElements/jucer_PaintElement.h"
 
-
+//==============================================================================
 namespace ObjectTypes
 {
     //==============================================================================
     // Component types
-    extern ComponentTypeHandler** const componentTypeHandlers;
+    extern ComponentTypeHandler* const* const componentTypeHandlers;
     extern const int numComponentTypes;
 
     //==============================================================================
     // Element types
-    extern const char** const elementTypeNames;
+    extern const char* const* const elementTypeNames;
     extern const int numElementTypes;
 
     PaintElement* createNewElement (const int index, PaintRoutine* owner);

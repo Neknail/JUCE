@@ -24,6 +24,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 #if (JUCE_MAC || JUCE_IOS) && USE_COREGRAPHICS_RENDERING && JUCE_USE_COREIMAGE_LOADER
  Image juce_loadWithCoreImage (InputStream& input);
 #else
@@ -423,7 +426,7 @@ bool GIFImageFormat::canUnderstand (InputStream& in)
 {
     char header [4];
 
-    return (in.read (header, sizeof (header)) == sizeof (header))
+    return (in.read (header, sizeof (header)) == (int) sizeof (header))
              && header[0] == 'G'
              && header[1] == 'I'
              && header[2] == 'F';
@@ -434,7 +437,7 @@ Image GIFImageFormat::decodeImage (InputStream& in)
    #if (JUCE_MAC || JUCE_IOS) && USE_COREGRAPHICS_RENDERING && JUCE_USE_COREIMAGE_LOADER
     return juce_loadWithCoreImage (in);
    #else
-    const ScopedPointer<GIFLoader> loader (new GIFLoader (in));
+    const std::unique_ptr<GIFLoader> loader (new GIFLoader (in));
     return loader->image;
    #endif
 }
@@ -444,3 +447,5 @@ bool GIFImageFormat::writeImageToStream (const Image& /*sourceImage*/, OutputStr
     jassertfalse; // writing isn't implemented for GIFs!
     return false;
 }
+
+} // namespace juce

@@ -24,6 +24,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 const String RelativeCoordinate::Strings::parent ("parent");
 const String RelativeCoordinate::Strings::left ("left");
 const String RelativeCoordinate::Strings::right ("right");
@@ -70,13 +73,13 @@ RelativeCoordinate& RelativeCoordinate::operator= (const RelativeCoordinate& oth
 }
 
 RelativeCoordinate::RelativeCoordinate (RelativeCoordinate&& other) noexcept
-    : term (static_cast<Expression&&> (other.term))
+    : term (std::move (other.term))
 {
 }
 
 RelativeCoordinate& RelativeCoordinate::operator= (RelativeCoordinate&& other) noexcept
 {
-    term = static_cast<Expression&&> (other.term);
+    term = std::move (other.term);
     return *this;
 }
 
@@ -147,3 +150,5 @@ String RelativeCoordinate::toString() const
 {
     return term.toString();
 }
+
+} // namespace juce

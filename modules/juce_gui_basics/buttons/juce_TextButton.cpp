@@ -24,6 +24,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 TextButton::TextButton()  : Button (String())
 {
 }
@@ -41,15 +44,15 @@ TextButton::~TextButton()
 {
 }
 
-void TextButton::paintButton (Graphics& g, bool isMouseOverButton, bool isButtonDown)
+void TextButton::paintButton (Graphics& g, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown)
 {
-    LookAndFeel& lf = getLookAndFeel();
+    auto& lf = getLookAndFeel();
 
     lf.drawButtonBackground (g, *this,
                              findColour (getToggleState() ? buttonOnColourId : buttonColourId),
-                             isMouseOverButton, isButtonDown);
+                             shouldDrawButtonAsHighlighted, shouldDrawButtonAsDown);
 
-    lf.drawButtonText (g, *this, isMouseOverButton, isButtonDown);
+    lf.drawButtonText (g, *this, shouldDrawButtonAsHighlighted, shouldDrawButtonAsDown);
 }
 
 void TextButton::colourChanged()
@@ -71,3 +74,5 @@ int TextButton::getBestWidthForHeight (int buttonHeight)
 {
     return getLookAndFeel().getTextButtonWidthToFitText (*this, buttonHeight);
 }
+
+} // namespace juce

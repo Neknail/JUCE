@@ -28,10 +28,10 @@
     See also SystemStats::getJUCEVersion() for a string version.
 */
 #define JUCE_MAJOR_VERSION      5
-#define JUCE_MINOR_VERSION      0
-#define JUCE_BUILDNUMBER        2
+#define JUCE_MINOR_VERSION      4
+#define JUCE_BUILDNUMBER        5
 
-/** Current Juce version number.
+/** Current JUCE version number.
 
     Bits 16 to 32 = major version.
     Bits 8 to 16 = minor version.
@@ -50,6 +50,11 @@
 #include <functional>
 #include <algorithm>
 #include <limits>
+#include <atomic>
+#include <sstream>
+#include <iomanip>
+#include <map>
+#include <cstddef>
 
 //==============================================================================
 #include "juce_CompilerSupport.h"
@@ -65,6 +70,10 @@
 
 #if JUCE_MAC || JUCE_IOS
  #include <libkern/OSAtomic.h>
+ #include <xlocale.h>
+ #if JUCE_IOS
+  #include <signal.h>
+ #endif
 #endif
 
 #if JUCE_LINUX
@@ -107,9 +116,8 @@
 #undef minor
 #undef KeyPress
 
-// Include a replacement for std::function on older platforms and the live
-// build
-#if JUCE_PROJUCER_LIVE_BUILD || ! defined (JUCE_STDLIB_HAS_STD_FUNCTION_SUPPORT)
+// Include a replacement for std::function
+#if JUCE_PROJUCER_LIVE_BUILD
  #include "../misc/juce_StdFunctionCompat.h"
 #endif
 
@@ -132,7 +140,7 @@
 
 //==============================================================================
 #ifndef JUCE_API
- #define JUCE_API   /**< This macro is added to all juce public class declarations. */
+ #define JUCE_API   /**< This macro is added to all JUCE public class declarations. */
 #endif
 
 #if JUCE_MSVC && JUCE_DLL_BUILD
@@ -141,7 +149,7 @@
  #define JUCE_PUBLIC_IN_DLL_BUILD(declaration)  declaration;
 #endif
 
-/** This macro is added to all juce public function declarations. */
+/** This macro is added to all JUCE public function declarations. */
 #define JUCE_PUBLIC_FUNCTION        JUCE_API JUCE_CALLTYPE
 
 #if (! defined (JUCE_CATCH_DEPRECATED_CODE_MISUSE)) && JUCE_DEBUG && ! DOXYGEN

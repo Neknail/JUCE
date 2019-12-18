@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -42,6 +42,8 @@
 
     @see PropertyPanel, TextPropertyComponent, SliderPropertyComponent,
          ChoicePropertyComponent, ButtonPropertyComponent, BooleanPropertyComponent
+
+    @tags{GUI}
 */
 class JUCE_API  PropertyComponent  : public Component,
                                      public SettableTooltipClient
@@ -62,7 +64,7 @@ public:
                        int preferredHeight = 25);
 
     /** Destructor. */
-    ~PropertyComponent();
+    ~PropertyComponent() override;
 
     //==============================================================================
     /** Returns this item's preferred height.
@@ -121,12 +123,13 @@ public:
     /** This abstract base class is implemented by LookAndFeel classes. */
     struct JUCE_API  LookAndFeelMethods
     {
-        virtual ~LookAndFeelMethods() {}
+        virtual ~LookAndFeelMethods() = default;
 
         virtual void drawPropertyPanelSectionHeader (Graphics&, const String& name, bool isOpen, int width, int height) = 0;
         virtual void drawPropertyComponentBackground (Graphics&, int width, int height, PropertyComponent&) = 0;
         virtual void drawPropertyComponentLabel (Graphics&, int width, int height, PropertyComponent&) = 0;
         virtual Rectangle<int> getPropertyComponentContentPosition (PropertyComponent&) = 0;
+        virtual int getPropertyPanelSectionHeaderHeight (const String& sectionTitle) = 0;
     };
 
 protected:
@@ -139,3 +142,5 @@ protected:
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PropertyComponent)
 };
+
+} // namespace juce

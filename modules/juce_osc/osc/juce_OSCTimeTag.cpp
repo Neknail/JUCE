@@ -24,6 +24,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 const OSCTimeTag OSCTimeTag::immediately;
 
 static const uint64 millisecondsBetweenOscAndJuceEpochs = 2208988800000ULL;
@@ -42,9 +45,6 @@ OSCTimeTag::OSCTimeTag (Time time) noexcept
 {
     const uint64 milliseconds = (uint64) time.toMilliseconds() + millisecondsBetweenOscAndJuceEpochs;
 
-    // something went seriously wrong if the line above didn't render the time nonnegative!
-    jassert (milliseconds >= 0);
-
     uint64 seconds = milliseconds / 1000;
     uint32 fractionalPart = uint32 (4294967.296 * (milliseconds % 1000));
 
@@ -57,12 +57,12 @@ Time OSCTimeTag::toTime() const noexcept
     const uint64 seconds = rawTimeTag >> 32;
     const uint32 fractionalPart = (rawTimeTag & 0x00000000FFFFFFFFULL);
 
-    const double fractionalPartInMillis = (double) fractionalPart / 4294967.296;
+    const auto fractionalPartInMillis = (double) fractionalPart / 4294967.296;
 
     // now using signed integer, because this is allowed to become negative:
-    const int64 juceTimeInMillis = int64 ((seconds * 1000)
-                                           + (uint64) roundToInt(fractionalPartInMillis)
-                                           - millisecondsBetweenOscAndJuceEpochs);
+    const auto juceTimeInMillis = (int64) (seconds * 1000)
+                                + (int64) roundToInt (fractionalPartInMillis)
+                                - (int64) millisecondsBetweenOscAndJuceEpochs;
 
     return Time (juceTimeInMillis);
 }
@@ -80,7 +80,9 @@ bool OSCTimeTag::isImmediately() const noexcept
 class OSCTimeTagTests  : public UnitTest
 {
 public:
-    OSCTimeTagTests() : UnitTest ("OSCTimeTag class") {}
+    OSCTimeTagTests()
+        : UnitTest ("OSCTimeTag class", UnitTestCategories::osc)
+    {}
 
     void runTest()
     {
@@ -102,7 +104,7 @@ public:
             expect (! copyTag.isImmediately());
         }
 
-        beginTest ("Conversion to/from Juce Time");
+        beginTest ("Conversion to/from JUCE Time");
 
         {
             Time time;
@@ -150,3 +152,5 @@ public:
 static OSCTimeTagTests OSCTimeTagUnitTests;
 
 #endif
+
+} // namespace juce

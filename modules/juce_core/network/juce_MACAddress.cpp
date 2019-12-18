@@ -20,6 +20,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 MACAddress::MACAddress() noexcept
 {
     zeromem (address, sizeof (address));
@@ -82,7 +85,16 @@ int64 MACAddress::toInt64() const noexcept
     return n;
 }
 
+Array<MACAddress> MACAddress::getAllAddresses()
+{
+    Array<MACAddress> addresses;
+    findAllAddresses (addresses);
+    return addresses;
+}
+
 bool MACAddress::isNull() const noexcept                                { return toInt64() == 0; }
 
 bool MACAddress::operator== (const MACAddress& other) const noexcept    { return memcmp (address, other.address, sizeof (address)) == 0; }
 bool MACAddress::operator!= (const MACAddress& other) const noexcept    { return ! operator== (other); }
+
+} // namespace juce

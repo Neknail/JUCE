@@ -35,7 +35,7 @@
 
   ID:               juce_opengl
   vendor:           juce
-  version:          5.0.2
+  version:          5.4.5
   name:             JUCE OpenGL classes
   description:      Classes for rendering OpenGL in a JUCE window.
   website:          http://www.juce.com/juce
@@ -93,19 +93,20 @@
  #undef KeyPress
 #elif JUCE_IOS
  #if defined (__IPHONE_7_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_7_0
+  #if defined (__IPHONE_12_0) && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_12_0
+   #define GLES_SILENCE_DEPRECATION 1
+  #endif
   #include <OpenGLES/ES3/gl.h>
  #else
   #include <OpenGLES/ES2/gl.h>
  #endif
 #elif JUCE_MAC
- #if defined (MAC_OS_X_VERSION_10_7) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
-  #define JUCE_OPENGL3 1
-  #include <OpenGL/gl3.h>
-  #include <OpenGL/gl3ext.h>
- #else
-  #include <OpenGL/gl.h>
-  #include <OpenGL/glext.h>
+ #define JUCE_OPENGL3 1
+ #if defined (MAC_OS_X_VERSION_10_14) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
+  #define GL_SILENCE_DEPRECATION 1
  #endif
+ #include <OpenGL/gl3.h>
+ #include <OpenGL/gl3ext.h>
 #elif JUCE_ANDROID
  #include <android/native_window.h>
  #include <android/native_window_jni.h>
@@ -164,14 +165,14 @@
 //==============================================================================
 namespace juce
 {
+    class OpenGLTexture;
+    class OpenGLFrameBuffer;
+    class OpenGLShaderProgram;
+}
 
-class OpenGLTexture;
-class OpenGLFrameBuffer;
-class OpenGLShaderProgram;
-
-#include "geometry/juce_Quaternion.h"
-#include "geometry/juce_Matrix3D.h"
 #include "geometry/juce_Vector3D.h"
+#include "geometry/juce_Matrix3D.h"
+#include "geometry/juce_Quaternion.h"
 #include "geometry/juce_Draggable3DOrientation.h"
 #include "native/juce_MissingGLDefinitions.h"
 #include "opengl/juce_OpenGLHelpers.h"
@@ -181,11 +182,7 @@ class OpenGLShaderProgram;
 #include "opengl/juce_OpenGLContext.h"
 #include "opengl/juce_OpenGLFrameBuffer.h"
 #include "opengl/juce_OpenGLGraphicsContext.h"
-#include "opengl/juce_OpenGLHelpers.h"
 #include "opengl/juce_OpenGLImage.h"
-#include "opengl/juce_OpenGLRenderer.h"
 #include "opengl/juce_OpenGLShaderProgram.h"
 #include "opengl/juce_OpenGLTexture.h"
 #include "utils/juce_OpenGLAppComponent.h"
-
-}

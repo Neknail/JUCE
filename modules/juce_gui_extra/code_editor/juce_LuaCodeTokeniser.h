@@ -24,18 +24,20 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
+
+    @tags{GUI}
 */
 class JUCE_API  LuaTokeniser   : public CodeTokeniser
 {
 public:
     //==============================================================================
     LuaTokeniser();
-    ~LuaTokeniser();
+    ~LuaTokeniser() override;
 
     //==============================================================================
     int readNextToken (CodeDocument::Iterator&) override;
@@ -60,3 +62,5 @@ private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LuaTokeniser)
 };
+
+} // namespace juce

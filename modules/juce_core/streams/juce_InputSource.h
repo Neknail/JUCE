@@ -20,8 +20,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -31,15 +31,17 @@
     caller to create an input stream that can read from it when required.
 
     @see FileInputSource
+
+    @tags{Core}
 */
 class JUCE_API  InputSource
 {
 public:
     //==============================================================================
-    InputSource() noexcept      {}
+    InputSource() = default;
 
     /** Destructor. */
-    virtual ~InputSource()      {}
+    virtual ~InputSource() = default;
 
     //==============================================================================
     /** Returns a new InputStream to read this item.
@@ -66,3 +68,5 @@ private:
     //==============================================================================
     JUCE_LEAK_DETECTOR (InputSource)
 };
+
+} // namespace juce

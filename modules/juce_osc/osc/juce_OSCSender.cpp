@@ -24,6 +24,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 namespace
 {
     //==============================================================================
@@ -66,7 +69,7 @@ namespace
             if (! output.writeString (value))
                 return false;
 
-            const size_t numPaddingZeros = ~value.length() & 3;
+            const size_t numPaddingZeros = ~value.getNumBytesAsUTF8() & 3;
 
             return output.writeRepeatedByte ('\0', numPaddingZeros);
         }
@@ -80,6 +83,11 @@ namespace
             const size_t numPaddingZeros = ~(blob.getSize() - 1) & 3;
 
             return output.writeRepeatedByte (0, numPaddingZeros);
+        }
+
+        bool writeColour (OSCColour colour)
+        {
+            return output.writeIntBigEndian ((int32) colour.toInt32());
         }
 
         bool writeTimeTag (OSCTimeTag timeTag)
@@ -120,6 +128,7 @@ namespace
                 case OSCTypes::float32:     return writeFloat32 (arg.getFloat32());
                 case OSCTypes::string:      return writeString (arg.getString());
                 case OSCTypes::blob:        return writeBlob (arg.getBlob());
+                case OSCTypes::colour:      return writeColour (arg.getColour());
 
                 default:
                     // In this very unlikely case you supplied an invalid OSCType!
@@ -212,20 +221,31 @@ struct OSCSender::Pimpl
         if (! disconnect())
             return false;
 
-        socket = new DatagramSocket (true);
+        socket.setOwned (new DatagramSocket (true));
         targetHostName = newTargetHost;
         targetPortNumber = newTargetPort;
 
         if (socket->bindToPort (0)) // 0 = use any local port assigned by the OS.
             return true;
 
-        socket = nullptr;
+        socket.reset();
         return false;
+    }
+
+    bool connectToSocket (DatagramSocket& newSocket, const String& newTargetHost, int newTargetPort)
+    {
+        if (! disconnect())
+            return false;
+
+        socket.setNonOwned (&newSocket);
+        targetHostName = newTargetHost;
+        targetPortNumber = newTargetPort;
+        return true;
     }
 
     bool disconnect()
     {
-        socket = nullptr;
+        socket.reset();
         return true;
     }
 
@@ -270,7 +290,7 @@ private:
     }
 
     //==============================================================================
-    ScopedPointer<DatagramSocket> socket;
+    OptionalScopedPointer<DatagramSocket> socket;
     String targetHostName;
     int targetPortNumber = 0;
 
@@ -286,13 +306,18 @@ OSCSender::OSCSender()   : pimpl (new Pimpl())
 OSCSender::~OSCSender()
 {
     pimpl->disconnect();
-    pimpl = nullptr;
+    pimpl.reset();
 }
 
 //==============================================================================
 bool OSCSender::connect (const String& targetHostName, int targetPortNumber)
 {
     return pimpl->connect (targetHostName, targetPortNumber);
+}
+
+bool OSCSender::connectToSocket (DatagramSocket& socket, const String& targetHostName, int targetPortNumber)
+{
+    return pimpl->connectToSocket (socket, targetHostName, targetPortNumber);
 }
 
 bool OSCSender::disconnect()
@@ -307,6 +332,7 @@ bool OSCSender::send (const OSCBundle& bundle)      { return pimpl->send (bundle
 bool OSCSender::sendToIPAddress (const String& host, int port, const OSCMessage& message) { return pimpl->send (message, host, port); }
 bool OSCSender::sendToIPAddress (const String& host, int port, const OSCBundle& bundle)   { return pimpl->send (bundle,  host, port); }
 
+
 //==============================================================================
 //==============================================================================
 #if JUCE_UNIT_TESTS
@@ -314,7 +340,9 @@ bool OSCSender::sendToIPAddress (const String& host, int port, const OSCBundle& 
 class OSCBinaryWriterTests  : public UnitTest
 {
 public:
-    OSCBinaryWriterTests() : UnitTest ("OSCBinaryWriter class") {}
+    OSCBinaryWriterTests()
+        : UnitTest ("OSCBinaryWriter class", UnitTestCategories::osc)
+    {}
 
     void runTest()
     {
@@ -641,7 +669,9 @@ static OSCBinaryWriterTests OSCBinaryWriterUnitTests;
 class OSCRoundTripTests  : public UnitTest
 {
 public:
-    OSCRoundTripTests() : UnitTest ("OSCRoundTripTests class") {}
+    OSCRoundTripTests()
+        : UnitTest ("OSCRoundTripTests class", UnitTestCategories::osc)
+    {}
 
     void runTest()
     {
@@ -842,5 +872,6 @@ public:
 
 static OSCRoundTripTests OSCRoundTripUnitTests;
 
-//==============================================================================
-#endif // JUCE_UNIT_TESTS
+#endif
+
+} // namespace juce

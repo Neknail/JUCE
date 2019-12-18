@@ -24,6 +24,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 ComponentDragger::ComponentDragger() {}
 ComponentDragger::~ComponentDragger() {}
 
@@ -45,7 +48,7 @@ void ComponentDragger::dragComponent (Component* const componentToDrag, const Mo
 
     if (componentToDrag != nullptr)
     {
-        Rectangle<int> bounds (componentToDrag->getBounds());
+        auto bounds = componentToDrag->getBounds();
 
         // If the component is a window, multiple mouse events can get queued while it's in the same position,
         // so their coordinates become wrong after the first one moves the window, so in that case, we'll use
@@ -61,3 +64,5 @@ void ComponentDragger::dragComponent (Component* const componentToDrag, const Mo
             componentToDrag->setBounds (bounds);
     }
 }
+
+} // namespace juce

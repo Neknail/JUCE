@@ -24,7 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
+namespace juce
+{
 
 class AudioThumbnailCache;
 
@@ -37,14 +38,16 @@ class AudioThumbnailCache;
     a concrete implementation.
 
     @see AudioThumbnail, AudioThumbnailCache
+
+    @tags{Audio}
 */
 class JUCE_API  AudioThumbnailBase    : public ChangeBroadcaster,
                                         public AudioFormatWriter::ThreadedWriter::IncomingDataReceiver
 {
 public:
     //==============================================================================
-    AudioThumbnailBase() {}
-    virtual ~AudioThumbnailBase() {}
+    AudioThumbnailBase() = default;
+    ~AudioThumbnailBase() override = default;
 
     //==============================================================================
     /** Clears and resets the thumbnail. */
@@ -152,3 +155,5 @@ public:
     /** Returns the hash code that was set by setSource() or setReader(). */
     virtual int64 getHashCode() const = 0;
 };
+
+} // namespace juce

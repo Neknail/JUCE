@@ -20,7 +20,8 @@
   ==============================================================================
 */
 
-#pragma once
+namespace juce
+{
 
 class MidiKeyboardState;
 
@@ -30,13 +31,15 @@ class MidiKeyboardState;
     Receives events from a MidiKeyboardState object.
 
     @see MidiKeyboardState
+
+    @tags{Audio}
 */
 class JUCE_API  MidiKeyboardStateListener
 {
 public:
     //==============================================================================
-    MidiKeyboardStateListener() noexcept        {}
-    virtual ~MidiKeyboardStateListener()        {}
+    MidiKeyboardStateListener() = default;
+    virtual ~MidiKeyboardStateListener() = default;
 
     //==============================================================================
     /** Called when one of the MidiKeyboardState's keys is pressed.
@@ -77,6 +80,8 @@ public:
     It also allows key up/down events to be triggered with its noteOn() and noteOff()
     methods, and midi messages for these events will be merged into the
     midi stream that gets processed by processNextMidiBuffer().
+
+    @tags{Audio}
 */
 class JUCE_API  MidiKeyboardState
 {
@@ -197,3 +202,5 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidiKeyboardState)
 };
+
+} // namespace juce

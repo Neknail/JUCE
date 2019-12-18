@@ -24,7 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -32,6 +33,8 @@
     another reader.
 
     @see AudioFormatReader
+
+    @tags{Audio}
 */
 class JUCE_API  BufferingAudioReader  : public AudioFormatReader,
                                         private TimeSliceClient
@@ -51,7 +54,7 @@ public:
                           TimeSliceThread& timeSliceThread,
                           int samplesToBuffer);
 
-    ~BufferingAudioReader();
+    ~BufferingAudioReader() override;
 
     /** Sets a number of milliseconds that the reader can block for in its readSamples()
         method before giving up and returning silence.
@@ -64,11 +67,11 @@ public:
                       int64 startSampleInFile, int numSamples) override;
 
 private:
-    ScopedPointer<AudioFormatReader> source;
+    std::unique_ptr<AudioFormatReader> source;
     TimeSliceThread& thread;
-    int64 nextReadPosition;
+    std::atomic<int64> nextReadPosition { 0 };
     const int numBlocks;
-    int timeoutMs;
+    int timeoutMs = 0;
 
     enum { samplesPerBlock = 32768 };
 
@@ -77,7 +80,7 @@ private:
         BufferedBlock (AudioFormatReader& reader, int64 pos, int numSamples);
 
         Range<int64> range;
-        AudioSampleBuffer buffer;
+        AudioBuffer<float> buffer;
     };
 
     CriticalSection lock;
@@ -89,3 +92,5 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BufferingAudioReader)
 };
+
+} // namespace juce

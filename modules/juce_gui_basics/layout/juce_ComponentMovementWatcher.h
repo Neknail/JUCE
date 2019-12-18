@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /** An object that watches for any movement of a component or any of its parent components.
@@ -38,19 +38,21 @@
 
     It also includes a callback that lets you know when the top-level peer is changed.
 
-    This class is used by specialised components like WebBrowserComponent or QuickTimeComponent
+    This class is used by specialised components like WebBrowserComponent
     because they need to keep their custom windows in the right place and respond to
     changes in the peer.
+
+    @tags{GUI}
 */
 class JUCE_API  ComponentMovementWatcher    : public ComponentListener
 {
 public:
     //==============================================================================
     /** Creates a ComponentMovementWatcher to watch a given target component. */
-    ComponentMovementWatcher (Component* component);
+    ComponentMovementWatcher (Component* componentToWatch);
 
     /** Destructor. */
-    ~ComponentMovementWatcher();
+    ~ComponentMovementWatcher() override;
 
     //==============================================================================
     /** This callback happens when the component that is being watched is moved
@@ -66,7 +68,7 @@ public:
     virtual void componentVisibilityChanged() = 0;
 
     /** Returns the component that's being watched. */
-    Component* getComponent() const noexcept         { return component; }
+    Component* getComponent() const noexcept         { return component.get(); }
 
     //==============================================================================
     /** @internal */
@@ -81,9 +83,9 @@ public:
 private:
     //==============================================================================
     WeakReference<Component> component;
-    uint32 lastPeerID;
-    Array <Component*> registeredParentComps;
-    bool reentrant, wasShowing;
+    uint32 lastPeerID = 0;
+    Array<Component*> registeredParentComps;
+    bool reentrant = false, wasShowing;
     Rectangle<int> lastBounds;
 
     void unregister();
@@ -91,3 +93,5 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ComponentMovementWatcher)
 };
+
+} // namespace juce

@@ -24,7 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
+namespace juce
+{
 
 #if JUCE_WEB_BROWSER || DOXYGEN
 
@@ -35,6 +36,8 @@
     The browser itself will be platform-dependent. On the Mac, probably Safari, on
     Windows, probably IE.
 
+
+    @tags{GUI}
 */
 class JUCE_API  WebBrowserComponent      : public Component
 {
@@ -53,7 +56,7 @@ public:
     explicit WebBrowserComponent (bool unloadPageWhenBrowserIsHidden = true);
 
     /** Destructor. */
-    ~WebBrowserComponent();
+    ~WebBrowserComponent() override;
 
     //==============================================================================
     /** Sends the browser to a particular URL.
@@ -131,12 +134,12 @@ public:
     void visibilityChanged() override;
     /** @internal */
     void focusGained (FocusChangeType) override;
-
+    /** @internal */
+    class Pimpl;
 private:
     //==============================================================================
-    class Pimpl;
-    Pimpl* browser;
-    bool blankPageShown, unloadPageWhenBrowserIsHidden;
+    std::unique_ptr<Pimpl> browser;
+    bool blankPageShown = false, unloadPageWhenBrowserIsHidden;
     String lastURL;
     StringArray lastHeaders;
     MemoryBlock lastPostData;
@@ -149,3 +152,5 @@ private:
 
 
 #endif
+
+} // namespace juce

@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -36,6 +36,8 @@
     or registerBasicFormats() to give it a list of format types that it can use.
 
     @see AudioFormat
+
+    @tags{Audio}
 */
 class JUCE_API  AudioFormatManager
 {
@@ -63,9 +65,9 @@ public:
     void registerFormat (AudioFormat* newFormat,
                          bool makeThisTheDefaultFormat);
 
-    /** Handy method to make it easy to register the formats that come with Juce.
-
-        Currently, this will add WAV and AIFF to the list.
+    /** Handy method to make it easy to register the formats that come with JUCE.
+        This will add WAV and AIFF to the list, along with any other formats enabled
+        in either the Projucer or your application's AppConfig.h.
     */
     void registerBasicFormats();
 
@@ -79,10 +81,16 @@ public:
     AudioFormat* getKnownFormat (int index) const;
 
     /** Iterator access to the list of known formats. */
-    AudioFormat** begin() const noexcept            { return knownFormats.begin(); }
+    AudioFormat** begin() noexcept                       { return knownFormats.begin(); }
 
     /** Iterator access to the list of known formats. */
-    AudioFormat** end() const noexcept              { return knownFormats.end(); }
+    AudioFormat* const* begin() const noexcept           { return knownFormats.begin(); }
+
+    /** Iterator access to the list of known formats. */
+    AudioFormat** end() noexcept                         { return knownFormats.end(); }
+
+    /** Iterator access to the list of known formats. */
+    AudioFormat* const* end() const noexcept             { return knownFormats.end(); }
 
     /** Looks for which of the known formats is listed as being for a given file
         extension.
@@ -135,7 +143,9 @@ public:
 private:
     //==============================================================================
     OwnedArray<AudioFormat> knownFormats;
-    int defaultFormatIndex;
+    int defaultFormatIndex = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioFormatManager)
 };
+
+} // namespace juce

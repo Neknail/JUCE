@@ -20,8 +20,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -41,6 +41,8 @@
     - Recursive locking is supported.
 
     @see ScopedReadLock, ScopedWriteLock, CriticalSection
+
+    @tags{Core}
 */
 class JUCE_API  ReadWriteLock
 {
@@ -125,8 +127,8 @@ private:
     //==============================================================================
     SpinLock accessLock;
     WaitableEvent waitEvent;
-    mutable int numWaitingWriters, numWriters;
-    mutable Thread::ThreadID writerThreadId;
+    mutable int numWaitingWriters = 0, numWriters = 0;
+    mutable Thread::ThreadID writerThreadId = {};
 
     struct ThreadRecursionCount
     {
@@ -140,3 +142,5 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE (ReadWriteLock)
 };
+
+} // namespace juce

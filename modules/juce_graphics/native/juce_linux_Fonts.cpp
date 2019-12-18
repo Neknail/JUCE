@@ -24,16 +24,19 @@
   ==============================================================================
 */
 
-static XmlElement* findFontsConfFile()
+namespace juce
+{
+
+static std::unique_ptr<XmlElement> findFontsConfFile()
 {
     static const char* pathsToSearch[] = { "/etc/fonts/fonts.conf",
                                            "/usr/share/fonts/fonts.conf" };
 
     for (auto* path : pathsToSearch)
-        if (auto* xml = XmlDocument::parse (File (path)))
+        if (auto xml = parseXML (File (path)))
             return xml;
 
-    return nullptr;
+    return {};
 }
 
 StringArray FTTypefaceList::getDefaultFontDirectories()
@@ -45,7 +48,7 @@ StringArray FTTypefaceList::getDefaultFontDirectories()
 
     if (fontDirs.isEmpty())
     {
-        if (ScopedPointer<XmlElement> fontsInfo = findFontsConfFile())
+        if (auto fontsInfo = findFontsConfFile())
         {
             forEachXmlChildElementWithTagName (*fontsInfo, e, "dir")
             {
@@ -190,3 +193,5 @@ Typeface::Ptr Font::getDefaultTypefaceForFont (const Font& font)
     f.setTypefaceName (defaultNames.getRealFontName (font.getTypefaceName()));
     return Typeface::createSystemTypefaceFor (f);
 }
+
+} // namespace juce

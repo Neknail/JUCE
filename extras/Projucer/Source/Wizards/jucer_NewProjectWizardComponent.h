@@ -27,40 +27,57 @@
 #pragma once
 
 
-class ModulesFolderPathBox  : public Component,
-                              private ButtonListener,
-                              private ComboBoxListener
+//==============================================================================
+class ModulesFolderPathBox  : public Component
 {
 public:
-    ModulesFolderPathBox (File initialFileOrDirectory)
+    ModulesFolderPathBox (String initialFileOrDirectory)
         : currentPathBox ("currentPathBox"),
           openFolderButton (TRANS("...")),
-          modulesLabel (String(), TRANS("Modules Folder") + ":")
+          modulesLabel (String(), TRANS("Modules Folder") + ":"),
+          useGlobalPathsToggle ("Use global module path")
     {
-        if (initialFileOrDirectory == File())
-            initialFileOrDirectory = findDefaultModulesFolder();
+        if (initialFileOrDirectory.isEmpty())
+            initialFileOrDirectory = getAppSettings().getStoredPath (Ids::defaultJuceModulePath, TargetOS::getThisOS()).get().toString();
 
         setModulesFolder (initialFileOrDirectory);
 
         addAndMakeVisible (currentPathBox);
         currentPathBox.setEditableText (true);
-        currentPathBox.addListener (this);
+        currentPathBox.onChange = [this] { setModulesFolder (File::getCurrentWorkingDirectory()
+                                                                  .getChildFile (currentPathBox.getText())); };
 
         addAndMakeVisible (openFolderButton);
-        openFolderButton.addListener (this);
         openFolderButton.setTooltip (TRANS ("Select JUCE modules folder"));
+        openFolderButton.onClick = [this] { selectJuceFolder(); };
 
         addAndMakeVisible (modulesLabel);
         modulesLabel.attachToComponent (&currentPathBox, true);
+
+        addAndMakeVisible (useGlobalPathsToggle);
+        useGlobalPathsToggle.setToggleState (true, sendNotification);
+        useGlobalPathsToggle.onClick = [this]
+        {
+            isUsingGlobalPaths = useGlobalPathsToggle.getToggleState();
+
+            currentPathBox.setEnabled   (! isUsingGlobalPaths);
+            openFolderButton.setEnabled (! isUsingGlobalPaths);
+            modulesLabel.setEnabled     (! isUsingGlobalPaths);
+        };
     }
 
     void resized() override
     {
-        auto r = getLocalBounds();
+        auto b = getLocalBounds();
 
-        openFolderButton.setBounds (r.removeFromRight (30));
-        modulesLabel.setBounds (r.removeFromLeft (110));
-        currentPathBox.setBounds (r);
+        auto topSlice = b.removeFromTop (b.getHeight() / 2);
+
+        openFolderButton.setBounds (topSlice.removeFromRight (30));
+        modulesLabel.setBounds (topSlice.removeFromLeft (110));
+        currentPathBox.setBounds (topSlice);
+
+        b.removeFromTop (5);
+        useGlobalPathsToggle.setBounds (b.translated (20, 0));
     }
 
     static bool selectJuceFolder (File& result)
@@ -68,13 +85,13 @@ public:
         for (;;)
         {
             FileChooser fc ("Select your JUCE modules folder...",
-                            findDefaultModulesFolder(),
+                            { getAppSettings().getStoredPath (Ids::defaultJuceModulePath, TargetOS::getThisOS()).get().toString() },
                             "*");
 
             if (! fc.browseForDirectory())
                 return false;
 
-            if (isJuceModulesFolder (fc.getResult()))
+            if (isJUCEModulesFolder (fc.getResult()))
             {
                 result = fc.getResult();
                 return true;
@@ -104,22 +121,14 @@ public:
         }
     }
 
-    void buttonClicked (Button*) override
-    {
-        selectJuceFolder();
-    }
-
-    void comboBoxChanged (ComboBox*) override
-    {
-        setModulesFolder (File::getCurrentWorkingDirectory().getChildFile (currentPathBox.getText()));
-    }
-
     File modulesFolder;
+    bool isUsingGlobalPaths = true;
 
 private:
     ComboBox currentPathBox;
     TextButton openFolderButton;
     Label modulesLabel;
+    ToggleButton useGlobalPathsToggle;
 };
 
 
@@ -271,29 +280,30 @@ private:
     a list box of platform targets to generate.
 */
 class WizardComp  : public Component,
-                    private ButtonListener,
-                    private ComboBoxListener,
-                    private TextEditorListener,
                     private FileBrowserListener
 {
 public:
     WizardComp()
         : platformTargets(),
           projectName (TRANS("Project name")),
-          modulesPathBox (findDefaultModulesFolder())
+          modulesPathBox (getAppSettings().getStoredPath (Ids::defaultJuceModulePath, TargetOS::getThisOS()).get().toString())
     {
         setOpaque (false);
 
         addChildAndSetID (&projectName, "projectName");
         projectName.setText ("NewProject");
         nameLabel.attachToComponent (&projectName, true);
-        projectName.addListener (this);
+        projectName.onTextChange = [this]
+        {
+            updateCreateButton();
+            fileBrowser.setFileName (File::createLegalFileName (projectName.getText()));
+        };
 
         addChildAndSetID (&projectType, "projectType");
         projectType.addItemList (getWizardNames(), 1);
         projectType.setSelectedId (1, dontSendNotification);
         typeLabel.attachToComponent (&projectType, true);
-        projectType.addListener (this);
+        projectType.onChange = [this] { updateFileCreationTypes(); };
 
         addChildAndSetID (&fileOutline, "fileOutline");
         fileOutline.setColour (GroupComponent::outlineColourId, Colours::black.withAlpha (0.2f));
@@ -311,11 +321,11 @@ public:
         fileBrowser.addListener (this);
 
         addChildAndSetID (&createButton, "createButton");
-        createButton.addListener (this);
+        createButton.onClick = [this] { createProject(); };
 
         addChildAndSetID (&cancelButton, "cancelButton");
         cancelButton.addShortcut (KeyPress (KeyPress::escapeKey));
-        cancelButton.addListener (this);
+        cancelButton.onClick = [this] { returnToTemplatesPage(); };
 
         addChildAndSetID (&modulesPathBox, "modulesPathBox");
 
@@ -355,23 +365,11 @@ public:
 
         filesToCreate.setBounds (right.removeFromTop (22).withTrimmedLeft (150));
         right.removeFromTop (20);
-        modulesPathBox.setBounds (right.removeFromTop (22));
+        modulesPathBox.setBounds (right.removeFromTop (50));
         right.removeFromTop (20);
 
         targetsOutline.setBounds (right);
         platformTargets.setBounds (right.reduced (25));
-    }
-
-    void buttonClicked (Button* b) override
-    {
-        if (b == &createButton)
-        {
-            createProject();
-        }
-        else if (b == &cancelButton)
-        {
-            returnToTemplatesPage();
-        }
     }
 
     void returnToTemplatesPage()
@@ -392,7 +390,9 @@ public:
         auto* mw = Component::findParentComponentOfClass<MainWindow>();
         jassert (mw != nullptr);
 
-        if (ScopedPointer<NewProjectWizardClasses::NewProjectWizard> wizard = createWizard())
+        std::unique_ptr<NewProjectWizardClasses::NewProjectWizard> wizard = createWizard();
+
+        if (wizard != nullptr)
         {
             Result result (wizard->processResultsFromSetupItems (*this));
 
@@ -404,15 +404,34 @@ public:
                 return;
             }
 
-            wizard->modulesFolder = modulesPathBox.modulesFolder;
 
-            if (! isJuceModulesFolder (wizard->modulesFolder))
+            wizard->modulesFolder = modulesPathBox.isUsingGlobalPaths ? File (getAppSettings().getStoredPath (Ids::defaultJuceModulePath, TargetOS::getThisOS()).get().toString())
+                                                                      : modulesPathBox.modulesFolder;
+
+            if (! isJUCEModulesFolder (wizard->modulesFolder))
+            {
+                if (modulesPathBox.isUsingGlobalPaths)
+                    AlertWindow::showMessageBox (AlertWindow::AlertIconType::WarningIcon, "Invalid Global Path",
+                                                 "Your global JUCE module search path is invalid. Please select the folder containing your JUCE modules "
+                                                 "to set as the default path.");
+
                 if (! wizard->selectJuceFolder())
                     return;
 
-            if (ScopedPointer<Project> project = wizard->runWizard (*this, projectName.getText(),
-                                                                    fileBrowser.getSelectedFile (0)))
+                if (modulesPathBox.isUsingGlobalPaths)
+                    getAppSettings().getStoredPath (Ids::defaultJuceModulePath, TargetOS::getThisOS()).setValue (wizard->modulesFolder.getFullPathName(), nullptr);
+            }
+
+            auto projectDir = fileBrowser.getSelectedFile (0);
+            std::unique_ptr<Project> project (wizard->runWizard (*this, projectName.getText(),
+                                                               projectDir,
+                                                               modulesPathBox.isUsingGlobalPaths));
+
+            if (project != nullptr)
+            {
                 mw->setProject (project.release());
+                getAppSettings().lastWizardFolder = projectDir.getParentDirectory();
+            }
         }
     }
 
@@ -420,23 +439,14 @@ public:
     {
         StringArray items;
 
-        if (ScopedPointer<NewProjectWizardClasses::NewProjectWizard> wizard = createWizard())
+        std::unique_ptr<NewProjectWizardClasses::NewProjectWizard> wizard = createWizard();
+
+        if (wizard != nullptr)
             items = wizard->getFileCreationOptions();
 
         filesToCreate.clear();
         filesToCreate.addItemList (items, 1);
         filesToCreate.setSelectedId (1, dontSendNotification);
-    }
-
-    void comboBoxChanged (ComboBox*) override
-    {
-        updateFileCreationTypes();
-    }
-
-    void textEditorTextChanged (TextEditor&) override
-    {
-        updateCreateButton();
-        fileBrowser.setFileName (File::createLegalFileName (projectName.getText()));
     }
 
     void selectionChanged() override {}
@@ -476,7 +486,7 @@ private:
     TextButton cancelButton { TRANS("Cancel") };
     ModulesFolderPathBox modulesPathBox;
 
-    NewProjectWizardClasses::NewProjectWizard* createWizard()
+    std::unique_ptr<NewProjectWizardClasses::NewProjectWizard> createWizard()
     {
         return createWizardType (projectType.getSelectedItemIndex());
     }

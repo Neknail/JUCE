@@ -20,19 +20,23 @@
   ==============================================================================
 */
 
-#pragma once
+namespace juce
+{
 
 //==============================================================================
 /**
     An InputStream which can be used to read from a given url.
+
+    @tags{Core}
 */
 class JUCE_API WebInputStream : public InputStream
 {
  public:
+    /** Used to receive callbacks for data send progress */
     class JUCE_API Listener
     {
     public:
-        virtual ~Listener() {}
+        virtual ~Listener() = default;
 
         virtual bool postDataSendProgress (WebInputStream& /*request*/, int /*bytesSent*/, int /*totalBytes*/)    { return true; }
     };
@@ -41,12 +45,12 @@ class JUCE_API WebInputStream : public InputStream
 
         @param url      The url that should be retrieved. This parameter may also contain
                         post data and/or parameters.
-        @param usePost  Specifies wheather a GET or a POST command should be used. This
+        @param usePost  Specifies whether a GET or a POST command should be used. This
                         parameter will also influence the way parameters are encoded.
     */
     WebInputStream (const URL& url, const bool usePost);
 
-    ~WebInputStream();
+    ~WebInputStream() override;
 
 
     /** Add extra headers to http request
@@ -97,7 +101,7 @@ class JUCE_API WebInputStream : public InputStream
 
         If getResponseHeaders is called without an established connection, then
         getResponseHeaders will call connect internally and block until connect
-        returns - either due to a succesful connection or a connection
+        returns - either due to a successful connection or a connection
         error.
 
         @see connect
@@ -108,7 +112,7 @@ class JUCE_API WebInputStream : public InputStream
 
         If getStatusCode is called without an established connection, then
         getStatusCode will call connect internally and block until connect
-        returns - either due to a succesful connection or a connection
+        returns - either due to a successful connection or a connection
         error.
 
         @see connect
@@ -122,7 +126,7 @@ class JUCE_API WebInputStream : public InputStream
         an error has occurred.
 
         Note that most methods will call connect internally if they are called without
-        an established connection. Therefore, it is not necessary to explicitely
+        an established connection. Therefore, it is not necessary to explicitly
         call connect unless you would like to use a custom listener.
 
         After a successful call to connect, getResponseHeaders, getTotalLength and
@@ -135,10 +139,10 @@ class JUCE_API WebInputStream : public InputStream
     */
     bool connect (Listener* listener);
 
-    /** Returns true if there was an error during the connection attempt */
+    /** Returns true if there was an error during the connection attempt. */
     bool isError() const;
 
-    /** Will cancel a blocking read. */
+    /** Will cancel a blocking read and prevent any subsequent connection attempts. */
     void cancel();
 
     //==============================================================================
@@ -149,7 +153,7 @@ class JUCE_API WebInputStream : public InputStream
 
         If getTotalLength is called without an established connection, then
         getTotalLength will call connect internally and block until connect
-        returns - either due to a succesful connection or a connection
+        returns - either due to a successful connection or a connection
         error.
 
         If the size of the stream isn't actually known, this will return -1.
@@ -208,3 +212,5 @@ class JUCE_API WebInputStream : public InputStream
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WebInputStream)
 };
+
+} // namespace juce

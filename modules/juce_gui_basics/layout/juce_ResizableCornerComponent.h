@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /** A component that resizes a parent component when dragged.
@@ -36,6 +36,8 @@
     around.
 
     @see ResizableBorderComponent
+
+    @tags{GUI}
 */
 class JUCE_API  ResizableCornerComponent  : public Component
 {
@@ -63,7 +65,7 @@ public:
                               ComponentBoundsConstrainer* constrainer);
 
     /** Destructor. */
-    ~ResizableCornerComponent();
+    ~ResizableCornerComponent() override;
 
 
 protected:
@@ -87,3 +89,5 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ResizableCornerComponent)
 };
+
+} // namespace juce

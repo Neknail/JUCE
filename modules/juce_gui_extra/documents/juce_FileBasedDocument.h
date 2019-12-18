@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -46,6 +46,8 @@
     ChangeBroadcaster base class.
 
     @see ChangeBroadcaster
+
+    @tags{GUI}
 */
 class JUCE_API FileBasedDocument  : public ChangeBroadcaster
 {
@@ -63,7 +65,7 @@ public:
                        const String& saveFileDialogTitle);
 
     /** Destructor. */
-    virtual ~FileBasedDocument();
+    ~FileBasedDocument() override;
 
     //==============================================================================
     /** Returns true if the changed() method has been called since the file was
@@ -290,3 +292,5 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FileBasedDocument)
 };
+
+} // namespace juce

@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -37,15 +37,19 @@
     JUCE 2D operations.
 
     @see Image, ImageType, ImagePixelData, OpenGLFrameBuffer
+
+    @tags{OpenGL}
 */
 class JUCE_API  OpenGLImageType     : public ImageType
 {
 public:
     OpenGLImageType();
-    ~OpenGLImageType();
+    ~OpenGLImageType() override;
 
     ImagePixelData::Ptr create (Image::PixelFormat, int width, int height, bool shouldClearImage) const override;
     int getTypeID() const override;
 
     static OpenGLFrameBuffer* getFrameBufferFrom (const Image&);
 };
+
+} // namespace juce

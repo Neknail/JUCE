@@ -24,6 +24,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 ToggleButton::ToggleButton()
     : Button (String())
 {
@@ -40,9 +43,9 @@ ToggleButton::~ToggleButton()
 {
 }
 
-void ToggleButton::paintButton (Graphics& g, bool isMouseOverButton, bool isButtonDown)
+void ToggleButton::paintButton (Graphics& g, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown)
 {
-    getLookAndFeel().drawToggleButton (g, *this, isMouseOverButton, isButtonDown);
+    getLookAndFeel().drawToggleButton (g, *this, shouldDrawButtonAsHighlighted, shouldDrawButtonAsDown);
 }
 
 void ToggleButton::changeWidthToFitText()
@@ -54,3 +57,5 @@ void ToggleButton::colourChanged()
 {
     repaint();
 }
+
+} // namespace juce

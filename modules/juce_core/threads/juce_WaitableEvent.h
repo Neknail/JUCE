@@ -20,16 +20,17 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
     Allows threads to wait for events triggered by other threads.
 
-    A thread can call wait() on a WaitableObject, and this will suspend the
-    calling thread until another thread wakes it up by calling the signal()
-    method.
+    A thread can call WaitableEvent::wait() to suspend the calling thread until
+    another thread wakes it up by calling the WaitableEvent::signal() method.
+
+    @tags{Core}
 */
 class JUCE_API  WaitableEvent
 {
@@ -106,3 +107,5 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WaitableEvent)
 };
+
+} // namespace juce

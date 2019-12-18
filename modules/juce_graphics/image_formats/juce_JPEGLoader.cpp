@@ -24,6 +24,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 #if JUCE_MSVC
  #pragma warning (push)
  #pragma warning (disable: 4365)
@@ -32,15 +35,32 @@
 namespace jpeglibNamespace
 {
 #if JUCE_INCLUDE_JPEGLIB_CODE || ! defined (JUCE_INCLUDE_JPEGLIB_CODE)
-   #if JUCE_MINGW
-    typedef unsigned char boolean;
-   #endif
+    #if JUCE_MINGW
+     typedef unsigned char boolean;
+    #endif
 
-   #if JUCE_CLANG
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wconversion"
-    #pragma clang diagnostic ignored "-Wdeprecated-register"
-   #endif
+    #if JUCE_CLANG
+     #pragma clang diagnostic push
+     #pragma clang diagnostic ignored "-Wconversion"
+     #pragma clang diagnostic ignored "-Wdeprecated-register"
+     #pragma clang diagnostic ignored "-Wcast-align"
+     #if __has_warning("-Wzero-as-null-pointer-constant")
+      #pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
+     #endif
+     #if __has_warning("-Wcomma")
+      #pragma clang diagnostic ignored "-Wcomma"
+     #endif
+    #endif
+
+    #if JUCE_GCC
+     #pragma GCC diagnostic push
+     #pragma GCC diagnostic ignored "-Wconversion"
+     #pragma GCC diagnostic ignored "-Wsign-conversion"
+     #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+     #if __GNUC__ > 5
+      #pragma GCC diagnostic ignored "-Wshift-negative-value"
+     #endif
+    #endif
 
     #define JPEG_INTERNALS
     #undef FAR
@@ -115,9 +135,13 @@ namespace jpeglibNamespace
     #include "jpglib/jutils.c"
     #include "jpglib/transupp.c"
 
-   #if JUCE_CLANG
-    #pragma clang diagnostic pop
-   #endif
+    #if JUCE_CLANG
+     #pragma clang diagnostic pop
+    #endif
+
+    #if JUCE_GCC
+     #pragma GCC diagnostic pop
+    #endif
 #else
     #define JPEG_INTERNALS
     #undef FAR
@@ -446,3 +470,5 @@ bool JPEGImageFormat::writeImageToStream (const Image& image, OutputStream& out)
 
     return true;
 }
+
+} // namespace juce

@@ -24,12 +24,11 @@
   ==============================================================================
 */
 
-#include "../jucer_Headers.h"
+#include "../Application/jucer_Headers.h"
 #include "jucer_JucerDocument.h"
 #include "jucer_ObjectTypes.h"
-#include "ui/jucer_JucerDocumentEditor.h"
-#include "components/jucer_ComponentUndoableAction.h"
-
+#include "UI/jucer_JucerDocumentEditor.h"
+#include "Components/jucer_ComponentUndoableAction.h"
 
 //==============================================================================
 ComponentLayout::ComponentLayout()
@@ -60,7 +59,7 @@ void ComponentLayout::perform (UndoableAction* action, const String& actionName)
     }
     else
     {
-        ScopedPointer<UndoableAction> deleter (action);
+        std::unique_ptr<UndoableAction> deleter (action);
         action->perform();
     }
 }
@@ -108,7 +107,7 @@ public:
     int indexAdded;
 
 private:
-    ScopedPointer<XmlElement> xml;
+    std::unique_ptr<XmlElement> xml;
     ComponentLayout& layout;
 
     static void showCorrectTab()
@@ -130,7 +129,7 @@ public:
          oldIndex (-1)
     {
         if (ComponentTypeHandler* const h = ComponentTypeHandler::getHandlerFor (*comp))
-            xml = h->createXmlFor (comp, &layout);
+            xml.reset (h->createXmlFor (comp, &layout));
         else
             jassertfalse;
 
@@ -156,7 +155,7 @@ public:
     }
 
 private:
-    ScopedPointer<XmlElement> xml;
+    std::unique_ptr<XmlElement> xml;
     int oldIndex;
 };
 
@@ -255,27 +254,24 @@ void ComponentLayout::copySelectedToClipboard()
 
     for (int i = 0; i < components.size(); ++i)
     {
-        Component* const c = components.getUnchecked(i);
+        auto c = components.getUnchecked(i);
 
         if (selected.isSelected (c))
         {
-            if (ComponentTypeHandler* const type = ComponentTypeHandler::getHandlerFor (*c))
+            if (auto type = ComponentTypeHandler::getHandlerFor (*c))
             {
-                XmlElement* const e = type->createXmlFor (c, this);
+                auto e = type->createXmlFor (c, this);
                 clip.addChildElement (e);
             }
         }
     }
 
-    SystemClipboard::copyTextToClipboard (clip.createDocument ("", false, false));
+    SystemClipboard::copyTextToClipboard (clip.toString());
 }
 
 void ComponentLayout::paste()
 {
-    XmlDocument clip (SystemClipboard::getTextFromClipboard());
-    ScopedPointer<XmlElement> doc (clip.getDocumentElement());
-
-    if (doc != nullptr && doc->hasTagName (clipboardXmlTag))
+    if (auto doc = parseXMLIfTagMatches (SystemClipboard::getTextFromClipboard(), clipboardXmlTag))
     {
         selected.deselectAll();
 
@@ -331,6 +327,68 @@ void ComponentLayout::selectedToBack()
         componentToBack (temp.getSelectedItem(i), true);
 }
 
+void ComponentLayout::alignTop()
+{
+    if (selected.getNumSelected() > 1)
+    {
+        auto* main = selected.getSelectedItem (0);
+        auto yPos = main->getY();
+
+        for (auto* other : selected)
+        {
+            if (other != main)
+                setComponentBoundsAndProperties (other,
+                                                 other->getBounds().withPosition (other->getX(), yPos),
+                                                 main, true);
+        }
+    }
+}
+
+void ComponentLayout::alignRight()
+{
+    if (selected.getNumSelected() > 1)
+    {
+        auto* main = selected.getSelectedItem (0);
+        auto rightPos = main->getRight();
+
+        for (auto* other : selected)
+        {
+            if (other != main)
+                setComponentBoundsAndProperties (other, other->getBounds().withPosition (rightPos - other->getWidth(), other->getY()), main, true);
+        }
+    }
+}
+
+void ComponentLayout::alignBottom()
+{
+    if (selected.getNumSelected() > 1)
+    {
+        auto* main = selected.getSelectedItem (0);
+        auto bottomPos = main->getBottom();
+
+        for (auto* other : selected)
+        {
+            if (other != main)
+                setComponentBoundsAndProperties (other, other->getBounds().withPosition (other->getX(), bottomPos - other->getHeight()), main, true);
+        }
+    }
+}
+
+void ComponentLayout::alignLeft()
+{
+    if (selected.getNumSelected() > 1)
+    {
+        auto* main = selected.getSelectedItem (0);
+        auto xPos = main->getX();
+
+        for (auto* other : selected)
+        {
+            if (other != main)
+                setComponentBoundsAndProperties (other, other->getBounds().withPosition (xPos, other->getY()), main, true);
+        }
+    }
+}
+
 void ComponentLayout::bringLostItemsBackOnScreen (int width, int height)
 {
     for (int i = components.size(); --i >= 0;)
@@ -347,25 +405,24 @@ void ComponentLayout::bringLostItemsBackOnScreen (int width, int height)
 
 Component* ComponentLayout::addNewComponent (ComponentTypeHandler* const type, int x, int y)
 {
-    ScopedPointer<Component> c (type->createNewComponent (getDocument()));
+    std::unique_ptr<Component> c (type->createNewComponent (getDocument()));
     jassert (c != nullptr);
 
     if (c != nullptr)
     {
         c->setSize (type->getDefaultWidth(), type->getDefaultHeight());
         c->setCentrePosition (x, y);
-        updateStoredComponentPosition (c, false);
+        updateStoredComponentPosition (c.get(), false);
 
         c->getProperties().set ("id", nextCompUID++);
 
-        ScopedPointer<XmlElement> xml (type->createXmlFor (c, this));
-        c = nullptr;
-        c = addComponentFromXml (*xml, true);
+        std::unique_ptr<XmlElement> xml (type->createXmlFor (c.get(), this));
+        c.reset (addComponentFromXml (*xml, true));
 
-        String memberName (CodeHelpers::makeValidIdentifier (type->getClassName (c), true, true, false));
-        setComponentMemberVariableName (c, memberName);
+        String memberName (CodeHelpers::makeValidIdentifier (type->getClassName (c.get()), true, true, false));
+        setComponentMemberVariableName (c.get(), memberName);
 
-        selected.selectOnly (c);
+        selected.selectOnly (c.get());
     }
 
     return c.release();
@@ -384,18 +441,18 @@ Component* ComponentLayout::addComponentFromXml (const XmlElement& xml, const bo
     if (ComponentTypeHandler* const type
            = ComponentTypeHandler::getHandlerForXmlTag (xml.getTagName()))
     {
-        ScopedPointer<Component> newComp (type->createNewComponent (getDocument()));
+        std::unique_ptr<Component> newComp (type->createNewComponent (getDocument()));
 
-        if (type->restoreFromXml (xml, newComp, this))
+        if (type->restoreFromXml (xml, newComp.get(), this))
         {
             // ensure that the new comp's name is unique
-            setComponentMemberVariableName (newComp, getComponentMemberVariableName (newComp));
+            setComponentMemberVariableName (newComp.get(), getComponentMemberVariableName (newComp.get()));
 
             // check for duped IDs..
-            while (findComponentWithId (ComponentTypeHandler::getComponentId (newComp)) != nullptr)
-                ComponentTypeHandler::setComponentId (newComp, Random::getSystemRandom().nextInt64());
+            while (findComponentWithId (ComponentTypeHandler::getComponentId (newComp.get())) != nullptr)
+                ComponentTypeHandler::setComponentId (newComp.get(), Random::getSystemRandom().nextInt64());
 
-            components.add (newComp);
+            components.add (newComp.get());
             changed();
             return newComp.release();
         }
@@ -442,11 +499,11 @@ void ComponentLayout::setComponentRelativeTarget (Component* comp, int whichDime
 
     jassert (comp != nullptr);
     jassert (pe != nullptr || components.contains (comp));
-    jassert (compToBeRelativeTo == 0 || components.contains (compToBeRelativeTo));
-    jassert (compToBeRelativeTo == 0 || ! dependsOnComponentForRelativePos (compToBeRelativeTo, comp));
+    jassert (compToBeRelativeTo == nullptr || components.contains (compToBeRelativeTo));
+    jassert (compToBeRelativeTo == nullptr || ! dependsOnComponentForRelativePos (compToBeRelativeTo, comp));
 
     if (compToBeRelativeTo != getComponentRelativePosTarget (comp, whichDimension)
-         && (compToBeRelativeTo == 0 || ! dependsOnComponentForRelativePos (compToBeRelativeTo, comp)))
+         && (compToBeRelativeTo == nullptr || ! dependsOnComponentForRelativePos (compToBeRelativeTo, comp)))
     {
         const int64 compId = ComponentTypeHandler::getComponentId (compToBeRelativeTo);
 
@@ -494,15 +551,24 @@ bool ComponentLayout::dependsOnComponentForRelativePos (Component* comp, Compone
     return false;
 }
 
+bool ComponentLayout::isComponentPositionRelative (Component* comp) const
+{
+    for (int i = 0; i < getNumComponents(); ++i)
+        if (dependsOnComponentForRelativePos (comp, getComponent (i)))
+            return true;
+
+    return false;
+}
+
 const int menuIdBase = 0x63240000;
 
 PopupMenu ComponentLayout::getRelativeTargetMenu (Component* comp, int whichDimension) const
 {
     PopupMenu m;
 
-    Component* const current = getComponentRelativePosTarget (comp, whichDimension);
+    auto current = getComponentRelativePosTarget (comp, whichDimension);
 
-    m.addItem (menuIdBase, "Relative to parent component", true, current == 0);
+    m.addItem (menuIdBase, "Relative to parent component", true, current == nullptr);
     m.addSeparator();
 
     for (int i = 0; i < components.size(); ++i)
@@ -558,6 +624,42 @@ private:
     RelativePositionedRectangle newPos, oldPos;
 };
 
+class ChangeCompBoundsAndPropertiesAction    : public ComponentUndoableAction<Component>
+{
+public:
+    ChangeCompBoundsAndPropertiesAction (Component* const comp, ComponentLayout& l,
+                                         const Rectangle<int>& bounds, const NamedValueSet& props)
+        : ComponentUndoableAction <Component> (comp, l),
+          newBounds (bounds),
+          oldBounds (comp->getBounds()),
+          newProps (props),
+          oldProps(comp->getProperties())
+    {
+    }
+
+    bool perform()
+    {
+        showCorrectTab();
+        getComponent()->setBounds (newBounds);
+        getComponent()->getProperties() = newProps;
+        layout.updateStoredComponentPosition (getComponent(), false);
+        return true;
+    }
+
+    bool undo()
+    {
+        showCorrectTab();
+        getComponent()->setBounds (oldBounds);
+        getComponent()->getProperties() = oldProps;
+        layout.updateStoredComponentPosition (getComponent(), false);
+        return true;
+    }
+
+private:
+    Rectangle<int> newBounds, oldBounds;
+    NamedValueSet newProps, oldProps;
+};
+
 void ComponentLayout::setComponentPosition (Component* comp,
                                             const RelativePositionedRectangle& newPos,
                                             const bool undoable)
@@ -571,6 +673,42 @@ void ComponentLayout::setComponentPosition (Component* comp,
         else
         {
             ComponentTypeHandler::setComponentPosition (comp, newPos, this);
+            changed();
+        }
+    }
+}
+
+void ComponentLayout::setComponentBoundsAndProperties (Component* componentToPosition, const Rectangle<int>& newBounds,
+                                                       Component* referenceComponent, const bool undoable)
+{
+    auto props = NamedValueSet (componentToPosition->getProperties());
+
+    auto rect = ComponentTypeHandler::getComponentPosition (componentToPosition).rect;
+    auto referenceComponentPosition = ComponentTypeHandler::getComponentPosition (referenceComponent);
+    auto referenceComponentRect = referenceComponentPosition.rect;
+
+    rect.setModes (referenceComponentRect.getAnchorPointX(), referenceComponentRect.getPositionModeX(),
+                   referenceComponentRect.getAnchorPointY(), referenceComponentRect.getPositionModeY(),
+                   referenceComponentRect.getWidthMode(),    referenceComponentRect.getHeightMode(),
+                   componentToPosition->getBounds());
+
+    props.set ("pos",         rect.toString());
+    props.set ("relativeToX", String::toHexString (referenceComponentPosition.relativeToX));
+    props.set ("relativeToY", String::toHexString (referenceComponentPosition.relativeToY));
+    props.set ("relativeToW", String::toHexString (referenceComponentPosition.relativeToW));
+    props.set ("relativeToH", String::toHexString (referenceComponentPosition.relativeToH));
+
+    if (componentToPosition->getBounds() != newBounds || componentToPosition->getProperties() != props)
+    {
+        if (undoable)
+        {
+            perform (new ChangeCompBoundsAndPropertiesAction (componentToPosition, *this, newBounds, props), "Change component bounds");
+        }
+        else
+        {
+            componentToPosition->setBounds (newBounds);
+            componentToPosition->getProperties() = props;
+            updateStoredComponentPosition (componentToPosition, false);
             changed();
         }
     }
@@ -838,7 +976,7 @@ void positionToCode (const RelativePositionedRectangle& position,
     if (position.rect.getWidthMode() == PositionedRectangle::proportionalSize)
     {
         if (wrw.isNotEmpty())
-            w << "roundFloatToInt (" << bracketIfNeeded (wrw) << " * " << CodeHelpers::floatLiteral (position.rect.getWidth(), 4) << ")";
+            w << "roundToInt (" << bracketIfNeeded (wrw) << " * " << CodeHelpers::floatLiteral (position.rect.getWidth(), 4) << ")";
         else
             w << "proportionOfWidth (" << CodeHelpers::floatLiteral (position.rect.getWidth(), 4) << ")";
     }
@@ -861,7 +999,7 @@ void positionToCode (const RelativePositionedRectangle& position,
     if (position.rect.getHeightMode() == PositionedRectangle::proportionalSize)
     {
         if (hrh.isNotEmpty())
-            h << "roundFloatToInt (" << bracketIfNeeded (hrh) << " * " << CodeHelpers::floatLiteral (position.rect.getHeight(), 4) << ")";
+            h << "roundToInt (" << bracketIfNeeded (hrh) << " * " << CodeHelpers::floatLiteral (position.rect.getHeight(), 4) << ")";
         else
             h << "proportionOfHeight (" << CodeHelpers::floatLiteral (position.rect.getHeight(), 4) << ")";
     }
@@ -884,7 +1022,7 @@ void positionToCode (const RelativePositionedRectangle& position,
     if (position.rect.getPositionModeX() == PositionedRectangle::proportionOfParentSize)
     {
         if (xrx.isNotEmpty() && xrw.isNotEmpty())
-            x << bracketIfNeeded (xrx) << " + roundFloatToInt (" << bracketIfNeeded (xrw) << " * " << CodeHelpers::floatLiteral (position.rect.getX(), 4) << ")";
+            x << bracketIfNeeded (xrx) << " + roundToInt (" << bracketIfNeeded (xrw) << " * " << CodeHelpers::floatLiteral (position.rect.getX(), 4) << ")";
         else
             x << "proportionOfWidth (" << CodeHelpers::floatLiteral (position.rect.getX(), 4) << ")";
     }
@@ -930,7 +1068,7 @@ void positionToCode (const RelativePositionedRectangle& position,
     if (position.rect.getPositionModeY() == PositionedRectangle::proportionOfParentSize)
     {
         if (yry.isNotEmpty() && yrh.isNotEmpty())
-            y << bracketIfNeeded (yry) << " + roundFloatToInt (" << bracketIfNeeded (yrh) << " * " << CodeHelpers::floatLiteral (position.rect.getY(), 4) << ")";
+            y << bracketIfNeeded (yry) << " + roundToInt (" << bracketIfNeeded (yrh) << " * " << CodeHelpers::floatLiteral (position.rect.getY(), 4) << ")";
         else
             y << "proportionOfHeight (" << CodeHelpers::floatLiteral (position.rect.getY(), 4) << ")";
     }

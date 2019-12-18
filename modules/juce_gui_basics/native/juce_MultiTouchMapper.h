@@ -24,7 +24,15 @@
   ==============================================================================
 */
 
-#pragma once
+#if JUCE_CLANG
+ #if __has_warning("-Wzero-as-null-pointer-constant")
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
+ #endif
+#endif
+
+namespace juce
+{
 
 template <typename IDType>
 class MultiTouchMapper
@@ -32,19 +40,19 @@ class MultiTouchMapper
 public:
     MultiTouchMapper() {}
 
-    int getIndexOfTouch (IDType touchID)
+    int getIndexOfTouch (ComponentPeer* peer, IDType touchID)
     {
         jassert (touchID != 0); // need to rethink this if IDs can be 0!
+        TouchInfo info {touchID, peer};
 
-        int touchIndex = currentTouches.indexOf (touchID);
+        int touchIndex = currentTouches.indexOf (info);
 
         if (touchIndex < 0)
         {
-            for (touchIndex = 0; touchIndex < currentTouches.size(); ++touchIndex)
-                if (currentTouches.getUnchecked (touchIndex) == 0)
-                    break;
+            auto emptyTouchIndex = currentTouches.indexOf ({});
+            touchIndex = (emptyTouchIndex >= 0 ? emptyTouchIndex : currentTouches.size());
 
-            currentTouches.set (touchIndex, touchID);
+            currentTouches.set (touchIndex, info);
         }
 
         return touchIndex;
@@ -57,20 +65,53 @@ public:
 
     void clearTouch (int index)
     {
-        currentTouches.set (index, 0);
+        currentTouches.set (index, {});
     }
 
     bool areAnyTouchesActive() const noexcept
     {
-        for (int i = currentTouches.size(); --i >= 0;)
-            if (currentTouches.getUnchecked(i) != 0)
+        for (auto& t : currentTouches)
+            if (t.touchId != 0)
                 return true;
 
         return false;
     }
 
+    void deleteAllTouchesForPeer (ComponentPeer* peer)
+    {
+        for (auto& t : currentTouches)
+            if (t.owner == peer)
+                t.touchId = 0;
+    }
+
 private:
-    Array<IDType> currentTouches;
+    //==============================================================================
+    struct TouchInfo
+    {
+        TouchInfo() noexcept  : touchId (0), owner (nullptr) {}
+        TouchInfo (IDType idToUse, ComponentPeer* peer) noexcept  : touchId (idToUse), owner (peer) {}
+
+        TouchInfo (const TouchInfo&) = default;
+        TouchInfo& operator= (const TouchInfo&) = default;
+        TouchInfo (TouchInfo&&) noexcept = default;
+        TouchInfo& operator= (TouchInfo&&) noexcept = default;
+
+        IDType touchId;
+        ComponentPeer* owner;
+
+        bool operator== (const TouchInfo& o) const noexcept     { return (touchId == o.touchId); }
+    };
+
+    //==============================================================================
+    Array<TouchInfo> currentTouches;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MultiTouchMapper)
 };
+
+} // namespace juce
+
+#if JUCE_CLANG
+ #if __has_warning("-Wzero-as-null-pointer-constant")
+  #pragma clang diagnostic pop
+ #endif
+#endif

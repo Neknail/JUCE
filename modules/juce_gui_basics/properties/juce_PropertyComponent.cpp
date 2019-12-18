@@ -24,8 +24,11 @@
   ==============================================================================
 */
 
-PropertyComponent::PropertyComponent (const String& name, const int preferredHeight_)
-    : Component (name), preferredHeight (preferredHeight_)
+namespace juce
+{
+
+PropertyComponent::PropertyComponent (const String& name, int height)
+    : Component (name), preferredHeight (height)
 {
     jassert (name.isNotEmpty());
 }
@@ -34,7 +37,7 @@ PropertyComponent::~PropertyComponent() {}
 
 void PropertyComponent::paint (Graphics& g)
 {
-    LookAndFeel& lf = getLookAndFeel();
+    auto& lf = getLookAndFeel();
 
     lf.drawPropertyComponentBackground (g, getWidth(), getHeight(), *this);
     lf.drawPropertyComponentLabel      (g, getWidth(), getHeight(), *this);
@@ -42,7 +45,7 @@ void PropertyComponent::paint (Graphics& g)
 
 void PropertyComponent::resized()
 {
-    if (Component* const c = getChildComponent(0))
+    if (auto c = getChildComponent(0))
         c->setBounds (getLookAndFeel().getPropertyComponentContentPosition (*this));
 }
 
@@ -50,3 +53,5 @@ void PropertyComponent::enablementChanged()
 {
     repaint();
 }
+
+} // namespace juce

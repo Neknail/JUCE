@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -40,6 +40,8 @@
     sensible results.
 
     @see Point, Rectangle, Path, Graphics::drawLine
+
+    @tags{Graphics}
 */
 template <typename ValueType>
 class Line
@@ -47,13 +49,10 @@ class Line
 public:
     //==============================================================================
     /** Creates a line, using (0, 0) as its start and end points. */
-    Line() noexcept {}
+    Line() = default;
 
     /** Creates a copy of another line. */
-    Line (const Line& other) noexcept
-        : start (other.start), end (other.end)
-    {
-    }
+    Line (const Line&) = default;
 
     /** Creates a line based on the coordinates of its start and end points. */
     Line (ValueType startX, ValueType startY, ValueType endX, ValueType endY) noexcept
@@ -68,15 +67,10 @@ public:
     }
 
     /** Copies a line from another one. */
-    Line& operator= (const Line& other) noexcept
-    {
-        start = other.start;
-        end = other.end;
-        return *this;
-    }
+    Line& operator= (const Line&) = default;
 
     /** Destructor. */
-    ~Line() noexcept {}
+    ~Line() = default;
 
     //==============================================================================
     /** Returns the x coordinate of the line's start point. */
@@ -184,7 +178,7 @@ public:
                                 the intersection (if the lines intersect). If the lines
                                 are parallel, this will just be set to the position
                                 of one of the line's endpoints.
-        @returns    true if the line segments intersect; false if they dont. Even if they
+        @returns    true if the line segments intersect; false if they don't. Even if they
                     don't intersect, the intersection coordinates returned will still
                     be valid
     */
@@ -251,7 +245,7 @@ public:
     */
     Point<ValueType> getPointAlongLineProportionally (typename Point<ValueType>::FloatType proportionOfLength) const noexcept
     {
-        return start + Point<ValueType> ((end - start) * proportionOfLength);
+        return start + (end - start) * proportionOfLength;
     }
 
     /** Returns the smallest distance between this line segment and a given point.
@@ -274,11 +268,11 @@ public:
         if (length > 0)
         {
             auto prop = ((targetPoint.x - start.x) * delta.x
-                       + (targetPoint.y - start.y) * delta.y) / length;
+                       + (targetPoint.y - start.y) * delta.y) / (double) length;
 
             if (prop >= 0 && prop <= 1.0)
             {
-                pointOnLine = start + delta * static_cast<ValueType> (prop);
+                pointOnLine = start + delta * prop;
                 return targetPoint.getDistanceFrom (pointOnLine);
             }
         }
@@ -424,3 +418,5 @@ private:
         return isZeroToOne (along2);
     }
 };
+
+} // namespace juce

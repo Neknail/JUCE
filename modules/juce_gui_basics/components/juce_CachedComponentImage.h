@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -36,12 +36,14 @@
     only for power-users!
 
     @see Component::setCachedComponentImage
+
+    @tags{GUI}
 */
 class JUCE_API  CachedComponentImage
 {
 public:
-    CachedComponentImage() noexcept {}
-    virtual ~CachedComponentImage() {}
+    CachedComponentImage() = default;
+    virtual ~CachedComponentImage() = default;
 
     //==============================================================================
     /** Called as part of the parent component's paint method, this must draw
@@ -67,3 +69,5 @@ public:
     */
     virtual void releaseResources() = 0;
 };
+
+} // namespace juce

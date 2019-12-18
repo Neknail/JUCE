@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -45,6 +45,8 @@
     be loaded and saved to avoid having to scan the file again.
 
     @see AudioThumbnailCache, AudioThumbnailBase
+
+    @tags{Audio}
 */
 class JUCE_API  AudioThumbnail    : public AudioThumbnailBase
 {
@@ -66,7 +68,7 @@ public:
                     AudioThumbnailCache& cacheToUse);
 
     /** Destructor. */
-    ~AudioThumbnail();
+    ~AudioThumbnail() override;
 
     //==============================================================================
     /** Clears and resets the thumbnail. */
@@ -107,7 +109,7 @@ public:
     /** Adds a block of level data to the thumbnail.
         Call reset() before using this, to tell the thumbnail about the data format.
     */
-    void addBlock (int64 sampleNumberInSource, const AudioSampleBuffer& newData,
+    void addBlock (int64 sampleNumberInSource, const AudioBuffer<float>& newData,
                    int startOffsetInBuffer, int numSamples) override;
 
     //==============================================================================
@@ -199,21 +201,15 @@ private:
     class ThumbData;
     class CachedWindow;
 
-    friend class LevelDataSource;
-    friend class ThumbData;
-    friend class CachedWindow;
-    friend struct ContainerDeletePolicy<LevelDataSource>;
-    friend struct ContainerDeletePolicy<ThumbData>;
-    friend struct ContainerDeletePolicy<CachedWindow>;
-
-    ScopedPointer<LevelDataSource> source;
-    ScopedPointer<CachedWindow> window;
+    std::unique_ptr<LevelDataSource> source;
+    std::unique_ptr<CachedWindow> window;
     OwnedArray<ThumbData> channels;
 
-    int32 samplesPerThumbSample;
-    int64 totalSamples, numSamplesFinished;
-    int32 numChannels;
-    double sampleRate;
+    int32 samplesPerThumbSample = 0;
+    std::atomic<int64> totalSamples { 0 };
+    int64 numSamplesFinished = 0;
+    int32 numChannels = 0;
+    double sampleRate = 0;
     CriticalSection lock;
 
     void clearChannelData();
@@ -223,3 +219,5 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioThumbnail)
 };
+
+} // namespace juce

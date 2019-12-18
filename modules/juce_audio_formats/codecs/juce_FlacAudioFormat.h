@@ -24,6 +24,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 #if JUCE_USE_FLAC || defined (DOXYGEN)
 
 //==============================================================================
@@ -33,13 +36,15 @@
     To compile this, you'll need to set the JUCE_USE_FLAC flag.
 
     @see AudioFormat
+
+    @tags{Audio}
 */
 class JUCE_API  FlacAudioFormat    : public AudioFormat
 {
 public:
     //==============================================================================
     FlacAudioFormat();
-    ~FlacAudioFormat();
+    ~FlacAudioFormat() override;
 
     //==============================================================================
     Array<int> getPossibleSampleRates() override;
@@ -59,9 +64,13 @@ public:
                                         int bitsPerSample,
                                         const StringPairArray& metadataValues,
                                         int qualityOptionIndex) override;
+    using AudioFormat::createWriterFor;
+
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FlacAudioFormat)
 };
 
 
 #endif
+
+} // namespace juce

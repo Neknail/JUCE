@@ -24,6 +24,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 HyperlinkButton::HyperlinkButton (const String& linkText,
                                   const URL& linkURL)
    : Button (linkText),
@@ -79,6 +82,15 @@ void HyperlinkButton::changeWidthToFitText()
     setSize (getFontToUse().getStringWidth (getButtonText()) + 6, getHeight());
 }
 
+void HyperlinkButton::setJustificationType (Justification newJustification)
+{
+    if (justification != newJustification)
+    {
+        justification = newJustification;
+        repaint();
+    }
+}
+
 void HyperlinkButton::colourChanged()
 {
     repaint();
@@ -92,13 +104,13 @@ void HyperlinkButton::clicked()
 }
 
 void HyperlinkButton::paintButton (Graphics& g,
-                                   bool isMouseOverButton,
-                                   bool isButtonDown)
+                                   bool shouldDrawButtonAsHighlighted,
+                                   bool shouldDrawButtonAsDown)
 {
     const Colour textColour (findColour (textColourId));
 
     if (isEnabled())
-        g.setColour ((isMouseOverButton) ? textColour.darker ((isButtonDown) ? 1.3f : 0.4f)
+        g.setColour ((shouldDrawButtonAsHighlighted) ? textColour.darker ((shouldDrawButtonAsDown) ? 1.3f : 0.4f)
                                          : textColour);
     else
         g.setColour (textColour.withMultipliedAlpha (0.4f));
@@ -109,3 +121,5 @@ void HyperlinkButton::paintButton (Graphics& g,
                 justification.getOnlyHorizontalFlags() | Justification::verticallyCentred,
                 true);
 }
+
+} // namespace juce

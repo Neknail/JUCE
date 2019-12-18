@@ -24,7 +24,9 @@
   ==============================================================================
 */
 
-//==============================================================================
+namespace juce
+{
+
 class SystemTrayIconComponent::Pimpl
 {
 public:
@@ -94,16 +96,16 @@ private:
 
 
 //==============================================================================
-void SystemTrayIconComponent::setIconImage (const Image& newImage)
+void SystemTrayIconComponent::setIconImage (const Image& colourImage, const Image&)
 {
-    pimpl = nullptr;
+    pimpl.reset();
 
-    if (newImage.isValid())
+    if (colourImage.isValid())
     {
         if (! isOnDesktop())
             addToDesktop (0);
 
-        pimpl = new Pimpl (newImage, (Window) getWindowHandle());
+        pimpl.reset (new Pimpl (colourImage, (Window) getWindowHandle()));
 
         setVisible (true);
         toFront (false);
@@ -143,3 +145,5 @@ void* SystemTrayIconComponent::getNativeHandle() const
 {
     return getWindowHandle();
 }
+
+} // namespace juce

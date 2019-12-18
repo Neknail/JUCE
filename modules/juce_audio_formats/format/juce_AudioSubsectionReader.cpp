@@ -24,16 +24,18 @@
   ==============================================================================
 */
 
-AudioSubsectionReader::AudioSubsectionReader (AudioFormatReader* const source_,
-                                              const int64 startSample_,
-                                              const int64 length_,
-                                              const bool deleteSourceWhenDeleted_)
-   : AudioFormatReader (0, source_->getFormatName()),
-     source (source_),
-     startSample (startSample_),
-     deleteSourceWhenDeleted (deleteSourceWhenDeleted_)
+namespace juce
 {
-    length = jmin (jmax ((int64) 0, source->lengthInSamples - startSample), length_);
+
+AudioSubsectionReader::AudioSubsectionReader (AudioFormatReader* sourceToUse,
+                                              int64 startSampleToUse, int64 lengthToUse,
+                                              bool deleteSource)
+   : AudioFormatReader (nullptr, sourceToUse->getFormatName()),
+     source (sourceToUse),
+     startSample (startSampleToUse),
+     deleteSourceWhenDeleted (deleteSource)
+{
+    length = jmin (jmax ((int64) 0, source->lengthInSamples - startSample), lengthToUse);
 
     sampleRate = source->sampleRate;
     bitsPerSample = source->bitsPerSample;
@@ -66,3 +68,5 @@ void AudioSubsectionReader::readMaxLevels (int64 startSampleInFile, int64 numSam
 
     source->readMaxLevels (startSampleInFile + startSample, numSamples, results, numChannelsToRead);
 }
+
+} // namespace juce

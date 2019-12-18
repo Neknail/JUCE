@@ -20,10 +20,10 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 ReadWriteLock::ReadWriteLock() noexcept
-    : numWaitingWriters (0),
-      numWriters (0),
-      writerThreadId (0)
 {
     readerThreads.ensureStorageAllocated (16);
 }
@@ -138,7 +138,9 @@ void ReadWriteLock::exitWrite() const noexcept
 
     if (--numWriters == 0)
     {
-        writerThreadId = 0;
+        writerThreadId = {};
         waitEvent.signal();
     }
 }
+
+} // namespace juce

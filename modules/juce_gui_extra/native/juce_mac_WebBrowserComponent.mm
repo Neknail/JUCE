@@ -24,7 +24,16 @@
   ==============================================================================
 */
 
+#if JUCE_CLANG && ! (defined (MAC_OS_X_VERSION_10_16) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_16)
+ #pragma clang diagnostic push
+ #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+ #define JUCE_DEPRECATION_IGNORED 1
+#endif
+
 #if JUCE_MAC
+
+namespace juce
+{
 
 struct WebViewKeyEquivalentResponder : public ObjCClass<WebView>
 {
@@ -38,7 +47,12 @@ private:
     static BOOL performKeyEquivalent (id self, SEL selector, NSEvent* event)
     {
         NSResponder* first = [[self window] firstResponder];
+
+       #if (defined (MAC_OS_X_VERSION_10_12) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_12)
+        if (([event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask) == NSEventModifierFlagCommand)
+       #else
         if (([event modifierFlags] & NSDeviceIndependentModifierFlagsMask) == NSCommandKeyMask)
+       #endif
         {
             if ([[event charactersIgnoringModifiers] isEqualToString:@"x"]) return [NSApp sendAction:@selector(cut:)       to:first from:self];
             if ([[event charactersIgnoringModifiers] isEqualToString:@"c"]) return [NSApp sendAction:@selector(copy:)      to:first from:self];
@@ -111,13 +125,12 @@ private:
     {
         if ([frame isEqual: [sender mainFrame]] && error != nullptr && [error code] != NSURLErrorCancelled)
         {
-            String errorString (nsStringToJuce ([error localizedDescription]));
-
+            auto errorString = nsStringToJuce ([error localizedDescription]);
             bool proceedToErrorPage = getOwner (self)->pageLoadHadNetworkError (errorString);
 
             // WebKit doesn't have an internal error page, so make a really simple one ourselves
             if (proceedToErrorPage)
-                getOwner(self)->goToURL (String ("data:text/plain;charset=UTF-8,") + errorString);
+                getOwner (self)->goToURL ("data:text/plain;charset=UTF-8," + errorString);
         }
     }
 
@@ -147,8 +160,6 @@ private:
 
 #else
 
-} // (juce namespace)
-
 //==============================================================================
 @interface WebViewTapDetector  : NSObject<UIGestureRecognizerDelegate>
 {
@@ -163,7 +174,7 @@ private:
 - (BOOL) gestureRecognizer: (UIGestureRecognizer*) gestureRecognizer
          shouldRecognizeSimultaneouslyWithGestureRecognizer: (UIGestureRecognizer*) otherGestureRecognizer
 {
-    ignoreUnused (gestureRecognizer, otherGestureRecognizer);
+    juce::ignoreUnused (gestureRecognizer, otherGestureRecognizer);
     return YES;
 }
 
@@ -193,17 +204,18 @@ private:
 - (BOOL) webView: (UIWebView*) webView shouldStartLoadWithRequest: (NSURLRequest*) request
                                                    navigationType: (UIWebViewNavigationType) navigationType
 {
-    ignoreUnused (webView, navigationType);
-    return ownerComponent->pageAboutToLoad (nsStringToJuce (request.URL.absoluteString));
+    juce::ignoreUnused (webView, navigationType);
+    return ownerComponent->pageAboutToLoad (juce::nsStringToJuce (request.URL.absoluteString));
 }
 
 - (void) webViewDidFinishLoad: (UIWebView*) webView
 {
-    ownerComponent->pageFinishedLoading (nsStringToJuce (webView.request.URL.absoluteString));
+    ownerComponent->pageFinishedLoading (juce::nsStringToJuce (webView.request.URL.absoluteString));
 }
 @end
 
-namespace juce {
+namespace juce
+{
 
 #endif
 
@@ -277,44 +289,48 @@ public:
         {
             NSString* urlString = juceStringToNS (url);
 
-           #if (JUCE_MAC && (defined (__MAC_OS_X_VERSION_MIN_REQUIRED) && defined (__MAC_10_9) && __MAC_OS_X_VERSION_MIN_REQUIRED >= __MAC_10_9)) || (JUCE_IOS && (defined (__IPHONE_OS_VERSION_MIN_REQUIRED) && defined (__IPHONE_7_0) && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_7_0))
+           #if (JUCE_MAC && (defined (MAC_OS_X_VERSION_10_9) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_9)) || (JUCE_IOS && (defined (__IPHONE_7_0) && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_7_0))
             urlString = [urlString stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
            #else
             urlString = [urlString stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
            #endif
-            NSMutableURLRequest* r
-                = [NSMutableURLRequest requestWithURL: [NSURL URLWithString: urlString]
-                                          cachePolicy: NSURLRequestUseProtocolCachePolicy
-                                      timeoutInterval: 30.0];
 
-            if (postData != nullptr && postData->getSize() > 0)
+            if (NSURL* nsURL = [NSURL URLWithString: urlString])
             {
-                [r setHTTPMethod: nsStringLiteral ("POST")];
-                [r setHTTPBody: [NSData dataWithBytes: postData->getData()
-                                               length: postData->getSize()]];
-            }
+                NSMutableURLRequest* r
+                    = [NSMutableURLRequest requestWithURL: nsURL
+                                              cachePolicy: NSURLRequestUseProtocolCachePolicy
+                                          timeoutInterval: 30.0];
 
-            if (headers != nullptr)
-            {
-                for (int i = 0; i < headers->size(); ++i)
+                if (postData != nullptr && postData->getSize() > 0)
                 {
-                    const String headerName  ((*headers)[i].upToFirstOccurrenceOf (":", false, false).trim());
-                    const String headerValue ((*headers)[i].fromFirstOccurrenceOf (":", false, false).trim());
-
-                    [r setValue: juceStringToNS (headerValue)
-                       forHTTPHeaderField: juceStringToNS (headerName)];
+                    [r setHTTPMethod: nsStringLiteral ("POST")];
+                    [r setHTTPBody: [NSData dataWithBytes: postData->getData()
+                                                   length: postData->getSize()]];
                 }
+
+                if (headers != nullptr)
+                {
+                    for (int i = 0; i < headers->size(); ++i)
+                    {
+                        auto headerName  = (*headers)[i].upToFirstOccurrenceOf (":", false, false).trim();
+                        auto headerValue = (*headers)[i].fromFirstOccurrenceOf (":", false, false).trim();
+
+                        [r setValue: juceStringToNS (headerValue)
+                           forHTTPHeaderField: juceStringToNS (headerName)];
+                    }
+                }
+
+               #if JUCE_MAC
+                [[webView mainFrame] loadRequest: r];
+               #else
+                [webView loadRequest: r];
+               #endif
+
+               #if JUCE_IOS
+                [webView setScalesPageToFit:YES];
+               #endif
             }
-
-           #if JUCE_MAC
-            [[webView mainFrame] loadRequest: r];
-           #else
-            [webView loadRequest: r];
-           #endif
-
-           #if JUCE_IOS
-            [webView setScalesPageToFit:YES];
-           #endif
         }
     }
 
@@ -349,20 +365,22 @@ private:
    #endif
 };
 
+#if JUCE_DEPRECATION_IGNORED
+ #pragma clang diagnostic pop
+ #undef JUCE_DEPRECATION_IGNORED
+#endif
+
 //==============================================================================
-WebBrowserComponent::WebBrowserComponent (const bool unloadWhenHidden)
-    : browser (nullptr),
-      blankPageShown (false),
-      unloadPageWhenBrowserIsHidden (unloadWhenHidden)
+WebBrowserComponent::WebBrowserComponent (bool unloadWhenHidden)
+    : unloadPageWhenBrowserIsHidden (unloadWhenHidden)
 {
     setOpaque (true);
-
-    addAndMakeVisible (browser = new Pimpl (this));
+    browser.reset (new Pimpl (this));
+    addAndMakeVisible (browser.get());
 }
 
 WebBrowserComponent::~WebBrowserComponent()
 {
-    deleteAndZero (browser);
 }
 
 //==============================================================================
@@ -433,7 +451,7 @@ void WebBrowserComponent::checkWindowAssociation()
             // page to avoid this, (and send it back when it's made visible again).
 
             blankPageShown = true;
-            browser->goToURL ("about:blank", 0, 0);
+            browser->goToURL ("about:blank", nullptr, nullptr);
         }
     }
 }
@@ -480,3 +498,5 @@ void WebBrowserComponent::clearCookies()
 
     [[NSUserDefaults standardUserDefaults] synchronize];
 }
+
+} // namespace juce

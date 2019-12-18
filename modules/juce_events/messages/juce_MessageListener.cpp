@@ -20,19 +20,22 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 Message::Message() noexcept {}
 Message::~Message() {}
 
 void Message::messageCallback()
 {
-    if (MessageListener* const r = recipient)
+    if (auto* r = recipient.get())
         r->handleMessage (*this);
 }
 
 MessageListener::MessageListener() noexcept
 {
     // Are you trying to create a messagelistener before or after juce has been intialised??
-    jassert (MessageManager::getInstanceWithoutCreating() != nullptr);
+    JUCE_ASSERT_MESSAGE_MANAGER_EXISTS
 }
 
 MessageListener::~MessageListener()
@@ -45,3 +48,5 @@ void MessageListener::postMessage (Message* const message) const
     message->recipient = const_cast<MessageListener*> (this);
     message->post();
 }
+
+} // namespace juce

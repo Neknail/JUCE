@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -55,7 +55,7 @@
             $result = $result->add ($remainder->modPow ($part1, $part2));
         }
 
-        return strrev ($result->toBytes());
+        return ($result->toBytes());
     }
     @endcode
 
@@ -89,6 +89,8 @@
 
     Disclaimer: neither of the code snippets above are tested! Please let me know if you have
     any corrections for them!
+
+    @tags{Cryptography}
 */
 class JUCE_API  RSAKey
 {
@@ -170,3 +172,5 @@ private:
 
     JUCE_LEAK_DETECTOR (RSAKey)
 };
+
+} // namespace juce

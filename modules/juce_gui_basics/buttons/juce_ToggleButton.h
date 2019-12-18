@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -35,6 +35,8 @@
     standard ones which has a tick-box and a text label next to it.
 
     @see Button, DrawableButton, TextButton
+
+    @tags{GUI}
 */
 class JUCE_API  ToggleButton  : public Button
 {
@@ -52,7 +54,7 @@ public:
     explicit ToggleButton (const String& buttonText);
 
     /** Destructor. */
-    ~ToggleButton();
+    ~ToggleButton() override;
 
     //==============================================================================
     /** Resizes the button to fit neatly around its current text.
@@ -72,16 +74,18 @@ public:
     {
         textColourId            = 0x1006501,  /**< The colour to use for the button's text. */
         tickColourId            = 0x1006502,  /**< The colour to use for the tick mark. */
-        tickDisabledColourId    = 0x1006503   /**< The colour to use for the disabled tick mark. */
+        tickDisabledColourId    = 0x1006503   /**< The colour to use for the disabled tick mark and/or outline. */
     };
 
 protected:
     //==============================================================================
     /** @internal */
-    void paintButton (Graphics&, bool isMouseOverButton, bool isButtonDown) override;
+    void paintButton (Graphics&, bool, bool) override;
     /** @internal */
     void colourChanged() override;
 
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ToggleButton)
 };
+
+} // namespace juce

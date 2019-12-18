@@ -24,12 +24,15 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 ToolbarButton::ToolbarButton (const int iid, const String& buttonText,
-                              Drawable* const normalIm, Drawable* const toggledOnIm)
+                              std::unique_ptr<Drawable> normalIm,
+                              std::unique_ptr<Drawable> toggledOnIm)
    : ToolbarItemComponent (iid, buttonText, true),
-     normalImage (normalIm),
-     toggledOnImage (toggledOnIm),
-     currentImage (nullptr)
+     normalImage (std::move (normalIm)),
+     toggledOnImage (std::move (toggledOnIm))
 {
     jassert (normalImage != nullptr);
 }
@@ -98,12 +101,14 @@ Drawable* ToolbarButton::getImageToUse() const
         return nullptr;
 
     if (getToggleState() && toggledOnImage != nullptr)
-        return toggledOnImage;
+        return toggledOnImage.get();
 
-    return normalImage;
+    return normalImage.get();
 }
 
 void ToolbarButton::buttonStateChanged()
 {
     setCurrentImage (getImageToUse());
 }
+
+} // namespace juce

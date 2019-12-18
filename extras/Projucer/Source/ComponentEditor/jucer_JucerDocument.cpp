@@ -24,16 +24,16 @@
   ==============================================================================
 */
 
-#include "../jucer_Headers.h"
+#include "../Application/jucer_Headers.h"
 #include "../Application/jucer_Application.h"
 #include "../Wizards/jucer_NewFileWizard.h"
 #include "jucer_JucerDocument.h"
 #include "jucer_ObjectTypes.h"
-#include "ui/jucer_JucerDocumentEditor.h"
-#include "ui/jucer_TestComponent.h"
+#include "UI/jucer_JucerDocumentEditor.h"
+#include "UI/jucer_TestComponent.h"
 #include "jucer_UtilityFunctions.h"
-#include "documents/jucer_ComponentDocument.h"
-#include "documents/jucer_ButtonDocument.h"
+#include "Documents/jucer_ComponentDocument.h"
+#include "Documents/jucer_ButtonDocument.h"
 
 const char* const defaultClassName = "NewComponent";
 const char* const defaultParentClasses = "public Component";
@@ -49,12 +49,10 @@ JucerDocument::JucerDocument (SourceCodeDocument* c)
 
     ProjucerApplication::getCommandManager().commandStatusChanged();
     cpp->getCodeDocument().addListener (this);
-    ProjucerApplication::getApp().openDocumentManager.addListener (this);
 }
 
 JucerDocument::~JucerDocument()
 {
-    ProjucerApplication::getApp().openDocumentManager.removeListener (this);
     cpp->getCodeDocument().removeListener (this);
     ProjucerApplication::getCommandManager().commandStatusChanged();
 }
@@ -75,15 +73,10 @@ struct UserDocChangeTimer  : public Timer
     JucerDocument& doc;
 };
 
-bool JucerDocument::documentAboutToClose (OpenDocumentManager::Document* doc)
-{
-    return doc != cpp;
-}
-
 void JucerDocument::userEditedCpp()
 {
     if (userDocChangeTimer == nullptr)
-        userDocChangeTimer = new UserDocChangeTimer (*this);
+        userDocChangeTimer.reset (new UserDocChangeTimer (*this));
 
     userDocChangeTimer->startTimer (500);
 }
@@ -105,7 +98,7 @@ void JucerDocument::timerCallback()
         stopTimer();
         beginTransaction();
 
-        flushChangesToDocuments (nullptr);
+        flushChangesToDocuments (nullptr, false);
     }
 }
 
@@ -171,7 +164,7 @@ void JucerDocument::setParentClasses (const String& classes)
                     type = s = String();
             }
 
-            s = type + CodeHelpers::makeValidIdentifier (s.trim(), false, false, true);
+            s = type + CodeHelpers::makeValidIdentifier (s.trim(), false, false, true, true);
 
             parentClassLines.set (i, s);
         }
@@ -224,7 +217,7 @@ void JucerDocument::setInitialSize (int w, int h)
 //==============================================================================
 bool JucerDocument::isSnapActive (const bool disableIfCtrlKeyDown) const noexcept
 {
-    return snapActive != (disableIfCtrlKeyDown && ModifierKeys::getCurrentModifiers().isCtrlDown());
+    return snapActive != (disableIfCtrlKeyDown && ModifierKeys::currentModifiers.isCtrlDown());
 }
 
 int JucerDocument::snapPosition (int pos) const noexcept
@@ -329,9 +322,9 @@ void JucerDocument::addExtraClassProperties (PropertyPanel&)
 //==============================================================================
 const char* const JucerDocument::jucerCompXmlTag = "JUCER_COMPONENT";
 
-XmlElement* JucerDocument::createXml() const
+std::unique_ptr<XmlElement> JucerDocument::createXml() const
 {
-    XmlElement* doc = new XmlElement (jucerCompXmlTag);
+    auto doc = std::make_unique<XmlElement> (jucerCompXmlTag);
 
     doc->setAttribute ("documentType", getTypeName());
     doc->setAttribute ("className", className);
@@ -431,9 +424,9 @@ void JucerDocument::fillInGeneratedCode (GeneratedCode& code) const
 
     fillInPaintCode (code);
 
-    ScopedPointer<XmlElement> e (createXml());
+    std::unique_ptr<XmlElement> e (createXml());
     jassert (e != nullptr);
-    code.jucerMetadata = e->createDocument ("", false, false);
+    code.jucerMetadata = e->toString (XmlElement::TextFormat().withoutHeader());
 
     resources.fillInGeneratedCode (code);
 
@@ -520,23 +513,7 @@ bool JucerDocument::findTemplateFiles (String& headerContent, String& cppContent
     return true;
 }
 
-static String fixLineEndings (const String& s)
-{
-    StringArray lines;
-    lines.addLines (s);
-
-    for (int i = 0; i < lines.size(); ++i)
-        lines.set (i, lines[i].trimEnd());
-
-    while (lines.size() > 0 && lines [lines.size() - 1].trim().isEmpty())
-        lines.remove (lines.size() - 1);
-
-    lines.add (String());
-
-    return lines.joinIntoString ("\r\n");
-}
-
-bool JucerDocument::flushChangesToDocuments (Project* project)
+bool JucerDocument::flushChangesToDocuments (Project* project, bool isInitial)
 {
     String headerTemplate, cppTemplate;
     if (! findTemplateFiles (headerTemplate, cppTemplate))
@@ -561,8 +538,20 @@ bool JucerDocument::flushChangesToDocuments (Project* project)
         generated.applyToCode (cppTemplate, headerFile.withFileExtension (".cpp"),
                                existingCpp, project);
 
-        headerTemplate = fixLineEndings (headerTemplate);
-        cppTemplate    = fixLineEndings (cppTemplate);
+        if (isInitial)
+        {
+            jassert (project != nullptr);
+
+            auto lineFeed = project->getProjectLineFeed();
+
+            headerTemplate = replaceLineFeeds (headerTemplate, lineFeed);
+            cppTemplate    = replaceLineFeeds (cppTemplate,    lineFeed);
+        }
+        else
+        {
+            headerTemplate = replaceLineFeeds (headerTemplate, getLineFeedForFile (existingHeader));
+            cppTemplate    = replaceLineFeeds (cppTemplate,    getLineFeedForFile (existingCpp));
+        }
 
         if (header->getCodeDocument().getAllContent() != headerTemplate)
             header->getCodeDocument().replaceAllContent (headerTemplate);
@@ -571,7 +560,7 @@ bool JucerDocument::flushChangesToDocuments (Project* project)
             cpp->getCodeDocument().replaceAllContent (cppTemplate);
     }
 
-    userDocChangeTimer = nullptr;
+    userDocChangeTimer.reset();
     return true;
 }
 
@@ -579,15 +568,15 @@ bool JucerDocument::reloadFromDocument()
 {
     const String cppContent (cpp->getCodeDocument().getAllContent());
 
-    ScopedPointer<XmlElement> newXML (pullMetaDataFromCppFile (cppContent));
+    std::unique_ptr<XmlElement> newXML (pullMetaDataFromCppFile (cppContent));
 
     if (newXML == nullptr || ! newXML->hasTagName (jucerCompXmlTag))
         return false;
 
-    if (currentXML != nullptr && currentXML->isEquivalentTo (newXML, true))
+    if (currentXML != nullptr && currentXML->isEquivalentTo (newXML.get(), true))
         return true;
 
-    currentXML = newXML;
+    currentXML.reset (newXML.release());
     stopTimer();
 
     resources.loadFromCpp (getCppFile(), cppContent);
@@ -632,19 +621,17 @@ void JucerDocument::extractCustomPaintSnippetsFromCppFile (const String& cppCont
     applyCustomPaintSnippets (customPaintSnippets);
 }
 
-XmlElement* JucerDocument::pullMetaDataFromCppFile (const String& cpp)
+std::unique_ptr<XmlElement> JucerDocument::pullMetaDataFromCppFile (const String& cpp)
 {
     auto lines = StringArray::fromLines (cpp);
-
-    const int startLine = indexOfLineStartingWith (lines, "BEGIN_JUCER_METADATA", 0);
+    auto startLine = indexOfLineStartingWith (lines, "BEGIN_JUCER_METADATA", 0);
 
     if (startLine > 0)
     {
-        const int endLine = indexOfLineStartingWith (lines, "END_JUCER_METADATA", startLine);
+        auto endLine = indexOfLineStartingWith (lines, "END_JUCER_METADATA", startLine);
 
         if (endLine > startLine)
-            return XmlDocument::parse (lines.joinIntoString ("\n", startLine + 1,
-                                                             endLine - startLine - 1));
+            return parseXML (lines.joinIntoString ("\n", startLine + 1, endLine - startLine - 1));
     }
 
     return nullptr;
@@ -652,9 +639,13 @@ XmlElement* JucerDocument::pullMetaDataFromCppFile (const String& cpp)
 
 bool JucerDocument::isValidJucerCppFile (const File& f)
 {
-    if (f.hasFileExtension (".cpp"))
-        if (ScopedPointer<XmlElement> xml = pullMetaDataFromCppFile (f.loadFileAsString()))
+    if (f.hasFileExtension (cppFileExtensions))
+    {
+        std::unique_ptr<XmlElement> xml (pullMetaDataFromCppFile (f.loadFileAsString()));
+
+        if (xml != nullptr)
             return xml->hasTagName (jucerCompXmlTag);
+    }
 
     return false;
 }
@@ -663,20 +654,20 @@ static JucerDocument* createDocument (SourceCodeDocument* cpp)
 {
     auto& codeDoc = cpp->getCodeDocument();
 
-    ScopedPointer<XmlElement> xml (JucerDocument::pullMetaDataFromCppFile (codeDoc.getAllContent()));
+    std::unique_ptr<XmlElement> xml (JucerDocument::pullMetaDataFromCppFile (codeDoc.getAllContent()));
 
     if (xml == nullptr || ! xml->hasTagName (JucerDocument::jucerCompXmlTag))
         return nullptr;
 
     const String docType (xml->getStringAttribute ("documentType"));
 
-    ScopedPointer<JucerDocument> newDoc;
+    std::unique_ptr<JucerDocument> newDoc;
 
     if (docType.equalsIgnoreCase ("Button"))
-        newDoc = new ButtonDocument (cpp);
+        newDoc.reset (new ButtonDocument (cpp));
 
     if (docType.equalsIgnoreCase ("Component") || docType.isEmpty())
-        newDoc = new ComponentDocument (cpp);
+        newDoc.reset (new ComponentDocument (cpp));
 
     if (newDoc != nullptr && newDoc->reloadFromDocument())
         return newDoc.release();
@@ -714,14 +705,22 @@ public:
         auto& odm = ProjucerApplication::getApp().openDocumentManager;
 
         if (auto* header = odm.openFile (nullptr, getFile().withFileExtension (".h")))
-            return header->save();
+        {
+            if (header->save())
+            {
+                odm.closeFile (getFile().withFileExtension(".h"), false);
+                return true;
+            }
+        }
 
         return false;
     }
 
     Component* createEditor() override
     {
-        if (ScopedPointer<JucerDocument> jucerDoc = JucerDocument::createForCppFile (getProject(), getFile()))
+        std::unique_ptr<JucerDocument> jucerDoc (JucerDocument::createForCppFile (getProject(), getFile()));
+
+        if (jucerDoc != nullptr)
             return new JucerDocumentEditor (jucerDoc.release());
 
         return SourceCodeDocument::createEditor();
@@ -736,43 +735,45 @@ public:
     };
 };
 
+OpenDocumentManager::DocumentType* createGUIDocumentType();
 OpenDocumentManager::DocumentType* createGUIDocumentType()
 {
     return new JucerComponentDocument::Type();
 }
 
 //==============================================================================
-class NewGUIComponentWizard  : public NewFileWizard::Type
+struct NewGUIComponentWizard  : public NewFileWizard::Type
 {
-public:
     NewGUIComponentWizard() {}
 
     String getName() override  { return "GUI Component"; }
 
     void createNewFile (Project& project, Project::Item parent) override
     {
-        const File newFile (askUserToChooseNewFile (String (defaultClassName) + ".h", "*.h;*.cpp", parent));
+        auto newFile = askUserToChooseNewFile (String (defaultClassName) + ".h", "*.h;*.cpp", parent);
 
         if (newFile != File())
         {
-            const File headerFile (newFile.withFileExtension (".h"));
-            const File cppFile (newFile.withFileExtension (".cpp"));
+            auto headerFile = newFile.withFileExtension (".h");
+            auto cppFile = newFile.withFileExtension (".cpp");
 
             headerFile.replaceWithText (String());
             cppFile.replaceWithText (String());
 
             auto& odm = ProjucerApplication::getApp().openDocumentManager;
 
-            if (auto* cpp = dynamic_cast<SourceCodeDocument*> (odm.openFile (nullptr, cppFile)))
+            if (auto* cpp = dynamic_cast<SourceCodeDocument*> (odm.openFile (&project, cppFile)))
             {
-                if (auto* header = dynamic_cast<SourceCodeDocument*> (odm.openFile (nullptr, headerFile)))
+                if (auto* header = dynamic_cast<SourceCodeDocument*> (odm.openFile (&project, headerFile)))
                 {
-                    if (ScopedPointer<JucerDocument> jucerDoc = new ComponentDocument (cpp))
+                    std::unique_ptr<JucerDocument> jucerDoc (new ComponentDocument (cpp));
+
+                    if (jucerDoc != nullptr)
                     {
                         jucerDoc->setClassName (newFile.getFileNameWithoutExtension());
 
-                        jucerDoc->flushChangesToDocuments (&project);
-                        jucerDoc = nullptr;
+                        jucerDoc->flushChangesToDocuments (&project, true);
+                        jucerDoc.reset();
 
                         cpp->save();
                         header->save();
@@ -788,6 +789,7 @@ public:
     }
 };
 
+NewFileWizard::Type* createGUIComponentWizard();
 NewFileWizard::Type* createGUIComponentWizard()
 {
     return new NewGUIComponentWizard();

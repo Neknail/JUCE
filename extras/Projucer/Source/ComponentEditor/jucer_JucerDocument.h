@@ -26,9 +26,9 @@
 
 #pragma once
 
-#include "../Application/jucer_OpenDocumentManager.h"
-#include "../Code Editor/jucer_SourceCodeEditor.h"
-#include "components/jucer_ComponentTypeHandler.h"
+#include "../CodeEditor/jucer_OpenDocumentManager.h"
+#include "../CodeEditor/jucer_SourceCodeEditor.h"
+#include "Components/jucer_ComponentTypeHandler.h"
 #include "jucer_PaintRoutine.h"
 #include "jucer_ComponentLayout.h"
 #include "jucer_BinaryResources.h"
@@ -36,15 +36,14 @@
 //==============================================================================
 class JucerDocument  : public ChangeBroadcaster,
                        private Timer,
-                       private CodeDocument::Listener,
-                       private OpenDocumentManager::DocumentCloseListener
+                       private CodeDocument::Listener
 {
 public:
     JucerDocument (SourceCodeDocument* cpp);
-    ~JucerDocument();
+    ~JucerDocument() override;
 
     static bool isValidJucerCppFile (const File&);
-    static XmlElement* pullMetaDataFromCppFile (const String& cpp);
+    static std::unique_ptr<XmlElement> pullMetaDataFromCppFile (const String& cpp);
     static JucerDocument* createForCppFile (Project*, const File&);
 
     void changed();
@@ -59,7 +58,7 @@ public:
     File getCppFile() const     { return cpp->getFile(); }
     File getHeaderFile() const  { return getCppFile().withFileExtension (".h"); }
 
-    bool flushChangesToDocuments (Project*);
+    bool flushChangesToDocuments (Project*, bool);
     bool reloadFromDocument();
 
     //==============================================================================
@@ -150,7 +149,7 @@ protected:
 
     BinaryResources resources;
 
-    virtual XmlElement* createXml() const;
+    virtual std::unique_ptr<XmlElement> createXml() const;
     virtual bool loadFromXml (const XmlElement&);
 
     virtual void fillInGeneratedCode (GeneratedCode&) const;
@@ -169,14 +168,13 @@ private:
     bool snapActive = true, snapShown = true;
     float componentOverlayOpacity = 0.33f;
     StringArray activeExtraMethods;
-    ScopedPointer<XmlElement> currentXML;
-    ScopedPointer<Timer> userDocChangeTimer;
+    std::unique_ptr<XmlElement> currentXML;
+    std::unique_ptr<Timer> userDocChangeTimer;
 
     void timerCallback() override;
     void codeDocumentTextInserted (const String& newText, int insertIndex) override;
     void codeDocumentTextDeleted (int startIndex, int endIndex) override;
     void userEditedCpp();
-    bool documentAboutToClose (OpenDocumentManager::Document*) override;
     void extractCustomPaintSnippetsFromCppFile (const String& cpp);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (JucerDocument)

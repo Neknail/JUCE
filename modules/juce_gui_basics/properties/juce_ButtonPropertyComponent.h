@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -35,9 +35,10 @@
     kind of action.
 
     @see PropertyComponent
+
+    @tags{GUI}
 */
-class JUCE_API  ButtonPropertyComponent  : public PropertyComponent,
-                                           private ButtonListener // (can't use Button::Listener due to idiotic VC2005 bug)
+class JUCE_API  ButtonPropertyComponent  : public PropertyComponent
 {
 public:
     //==============================================================================
@@ -50,7 +51,7 @@ public:
                              bool triggerOnMouseDown);
 
     /** Destructor. */
-    ~ButtonPropertyComponent();
+    ~ButtonPropertyComponent() override;
 
     //==============================================================================
     /** Called when the user clicks the button.
@@ -65,12 +66,12 @@ public:
 
     //==============================================================================
     /** @internal */
-    void refresh();
-    /** @internal */
-    void buttonClicked (Button*);
+    void refresh() override;
 
 private:
     TextButton button;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ButtonPropertyComponent)
 };
+
+} // namespace juce

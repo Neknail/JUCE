@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -38,6 +38,8 @@
     to allow it to update itself appropriately.
 
     @see FileChooser, ImagePreviewComponent
+
+    @tags{GUI}
 */
 class JUCE_API  FilePreviewComponent  : public Component
 {
@@ -47,7 +49,7 @@ public:
     FilePreviewComponent();
 
     /** Destructor. */
-    ~FilePreviewComponent();
+    ~FilePreviewComponent() override;
 
     /** Called to indicate that the user's currently selected file has changed.
 
@@ -61,3 +63,5 @@ private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FilePreviewComponent)
 };
+
+} // namespace juce

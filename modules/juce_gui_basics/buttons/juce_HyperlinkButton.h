@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -33,6 +33,8 @@
     when it's clicked.
 
     @see Button
+
+    @tags{GUI}
 */
 class JUCE_API  HyperlinkButton  : public Button
 {
@@ -42,7 +44,7 @@ public:
 
         @param linkText     the text that will be displayed in the button - this is
                             also set as the Component's name, but the text can be
-                            changed later with the Button::getButtonText() method
+                            changed later with the Button::setButtonText() method
         @param linkURL      the URL to launch when the user clicks the button
     */
     HyperlinkButton (const String& linkText,
@@ -52,7 +54,7 @@ public:
     HyperlinkButton();
 
     /** Destructor. */
-    ~HyperlinkButton();
+    ~HyperlinkButton() override;
 
     //==============================================================================
     /** Changes the font to use for the text.
@@ -91,6 +93,15 @@ public:
     */
     void changeWidthToFitText();
 
+    //==============================================================================
+    /** Sets the style of justification to be used for positioning the text.
+        (The default is Justification::centred)
+    */
+    void setJustificationType (Justification justification);
+
+    /** Returns the type of justification, as set in setJustificationType(). */
+    Justification getJustificationType() const noexcept         { return justification; }
+
 protected:
     //==============================================================================
     /** @internal */
@@ -98,16 +109,20 @@ protected:
     /** @internal */
     void colourChanged() override;
     /** @internal */
-    void paintButton (Graphics&, bool isMouseOver, bool isButtonDown) override;
+    void paintButton (Graphics&, bool, bool) override;
 
 private:
+    //==============================================================================
+    using Button::clicked;
+    Font getFontToUse() const;
+
     //==============================================================================
     URL url;
     Font font;
     bool resizeFont;
     Justification justification;
 
-    Font getFontToUse() const;
-
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HyperlinkButton)
 };
+
+} // namespace juce

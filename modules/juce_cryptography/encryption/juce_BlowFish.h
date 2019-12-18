@@ -24,13 +24,15 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
     BlowFish encryption class.
 
+
+    @tags{Cryptography}
 */
 class JUCE_API  BlowFish
 {
@@ -71,7 +73,7 @@ public:
         @param buffer       The message that should be encrypted. See bufferSize on size
                             requirements!
         @param sizeOfMsg    The size of the message that should be encrypted in bytes
-        @param bufferSize   The size of the buffer in bytes. To accomadate the encypted
+        @param bufferSize   The size of the buffer in bytes. To accommodate the encypted
                             data, the buffer must be larger than the message: the size of
                             the buffer needs to be equal or greater than the size of the
                             message in bytes rounded to the next integer which is divisable
@@ -97,7 +99,7 @@ private:
     static int pad   (void*, size_t, size_t) noexcept;
     static int unpad (const void*, size_t) noexcept;
 
-    bool apply (void*, size_t, void (BlowFish::*op) (uint32&, uint32&) const noexcept) const;
+    bool apply (void*, size_t, void (BlowFish::*op) (uint32&, uint32&) const) const;
 
     //==============================================================================
     uint32 p[18];
@@ -107,3 +109,5 @@ private:
 
     JUCE_LEAK_DETECTOR (BlowFish)
 };
+
+} // namespace juce

@@ -20,8 +20,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -31,6 +31,8 @@
     allows all directories through.
 
     @see FileFilter, DirectoryContentsList, FileListComponent, FileBrowserComponent
+
+    @tags{Core}
 */
 class JUCE_API  WildcardFileFilter  : public FileFilter
 {
@@ -52,10 +54,10 @@ public:
     */
     WildcardFileFilter (const String& fileWildcardPatterns,
                         const String& directoryWildcardPatterns,
-                        const String& description);
+                        const String& filterDescription);
 
     /** Destructor. */
-    ~WildcardFileFilter();
+    ~WildcardFileFilter() override;
 
     //==============================================================================
     /** Returns true if the filename matches one of the patterns specified. */
@@ -70,3 +72,5 @@ private:
 
     JUCE_LEAK_DETECTOR (WildcardFileFilter)
 };
+
+} // namespace juce

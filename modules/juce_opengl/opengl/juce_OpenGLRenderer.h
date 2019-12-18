@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -33,12 +33,14 @@
     on a background thread.
 
     @see OpenGLContext
+
+    @tags{OpenGL}
 */
 class JUCE_API  OpenGLRenderer
 {
 public:
-    OpenGLRenderer() {}
-    virtual ~OpenGLRenderer() {}
+    OpenGLRenderer() = default;
+    virtual ~OpenGLRenderer() = default;
 
     /** Called when a new GL context has been created.
         You can use this as an opportunity to create your textures, shaders, etc.
@@ -76,3 +78,5 @@ public:
     */
     virtual void openGLContextClosing() = 0;
 };
+
+} // namespace juce

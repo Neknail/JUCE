@@ -32,6 +32,10 @@ class ConsoleLogger : public Logger
     void logMessage (const String& message) override
     {
         std::cout << message << std::endl;
+
+       #if JUCE_WINDOWS
+        Logger::outputDebugString (message);
+       #endif
     }
 };
 
@@ -44,16 +48,44 @@ class ConsoleUnitTestRunner : public UnitTestRunner
     }
 };
 
-//==============================================================================
-int main (int argc, char* argv[])
-{
-    ignoreUnused (argc, argv);
 
-    ScopedPointer<ConsoleLogger> logger;
-    Logger::setCurrentLogger (logger);
+//==============================================================================
+int main (int argc, char **argv)
+{
+    ArgumentList args (argc, argv);
+
+    if (args.containsOption ("--help|-h"))
+    {
+        std::cout << argv[0] << " [--help|-h] [--list-categories] [--category category] [--seed seed]" << std::endl;
+        return 0;
+    }
+
+    if (args.containsOption ("--list-categories"))
+    {
+        for (auto& category : UnitTest::getAllCategories())
+            std::cout << category << std::endl;
+
+        return  0;
+    }
+
+    ConsoleLogger logger;
+    Logger::setCurrentLogger (&logger);
 
     ConsoleUnitTestRunner runner;
-    runner.runAllTests();
+
+    auto seed = (args.containsOption ("--seed") ? args.getValueForOption ("--seed").getLargeIntValue()
+                                                : Random::getSystemRandom().nextInt64());
+
+    if (args.containsOption ("--category"))
+        runner.runTestsInCategory (args.getValueForOption ("--category"), seed);
+    else
+        runner.runAllTests (seed);
+
+    Logger::setCurrentLogger (nullptr);
+
+    for (int i = 0; i < runner.getNumResults(); ++i)
+        if (runner.getResult(i)->failures > 0)
+            return 1;
 
     return 0;
 }

@@ -35,7 +35,7 @@
 
   ID:               juce_box2d
   vendor:           juce
-  version:          5.0.2
+  version:          5.4.5
   name:             JUCE wrapper for the Box2D physics engine
   description:      The Box2D physics engine and some utility classes.
   website:          http://www.juce.com/juce
@@ -54,11 +54,36 @@
 //==============================================================================
 #include <juce_graphics/juce_graphics.h>
 
+#ifdef JUCE_CLANG
+ #pragma clang diagnostic push
+ #pragma clang diagnostic ignored "-Wconversion"
+ #if __has_warning("-Wshadow-field")
+  #pragma clang diagnostic ignored "-Wshadow-field"
+ #endif
+ #if __has_warning("-Wzero-as-null-pointer-constant")
+  #pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
+ #endif
+#endif
+
+#ifdef JUCE_GCC
+ #pragma GCC diagnostic ignored "-Wconversion"
+ #pragma GCC diagnostic ignored "-Wsign-conversion"
+ #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+#endif
+
+#include <climits>
+#include <cfloat>
+
 #include "box2d/Box2D.h"
 
+#ifdef JUCE_CLANG
+ #pragma clang diagnostic pop
+#endif
+
+#ifdef JUCE_GCC
+ #pragma GCC diagnostic pop
+#endif
+
 #ifndef DOXYGEN // for some reason, Doxygen sees this as a re-definition of Box2DRenderer
-namespace juce
-{
-  #include "utils/juce_Box2DRenderer.h"
-}
+ #include "utils/juce_Box2DRenderer.h"
 #endif // DOXYGEN

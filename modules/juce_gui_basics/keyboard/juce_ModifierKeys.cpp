@@ -24,22 +24,12 @@
   ==============================================================================
 */
 
-ModifierKeys::ModifierKeys() noexcept  : flags (0) {}
-ModifierKeys::ModifierKeys (int rawFlags) noexcept  : flags (rawFlags) {}
-ModifierKeys::ModifierKeys (const ModifierKeys& other) noexcept  : flags (other.flags) {}
-
-ModifierKeys& ModifierKeys::operator= (const ModifierKeys other) noexcept
+namespace juce
 {
-    flags = other.flags;
-    return *this;
-}
 
 ModifierKeys ModifierKeys::currentModifiers;
 
-ModifierKeys ModifierKeys::getCurrentModifiers() noexcept
-{
-    return currentModifiers;
-}
+ModifierKeys::ModifierKeys (int rawFlags) noexcept               : flags (rawFlags)    {}
 
 int ModifierKeys::getNumMouseButtonsDown() const noexcept
 {
@@ -51,3 +41,10 @@ int ModifierKeys::getNumMouseButtonsDown() const noexcept
 
     return num;
 }
+
+ModifierKeys ModifierKeys::getCurrentModifiersRealtime() noexcept
+{
+    return ComponentPeer::getCurrentModifiersRealtime();
+}
+
+} // namespace juce

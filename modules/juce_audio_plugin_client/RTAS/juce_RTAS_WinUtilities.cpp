@@ -27,10 +27,10 @@
 #include "../../juce_core/system/juce_TargetPlatform.h"
 #include "../utility/juce_CheckSettingMacros.h"
 
+#if JucePlugin_Build_RTAS
+
 // (these functions are in their own file because of problems including windows.h
 // at the same time as the Digi headers)
-
-#if JucePlugin_Build_RTAS
 
 #define _DO_NOT_DECLARE_INTERLOCKED_INTRINSICS_IN_MEMORY // (workaround for a VC build problem)
 
@@ -50,6 +50,8 @@ void JUCE_CALLTYPE attachSubWindow (void* hostWindow,
                                     int& titleW, int& titleH,
                                     Component* comp)
 {
+    using namespace juce;
+
     RECT clientRect;
     GetClientRect ((HWND) hostWindow, &clientRect);
 
@@ -74,6 +76,8 @@ void JUCE_CALLTYPE resizeHostWindow (void* hostWindow,
                                      int& titleW, int& titleH,
                                      Component* comp)
 {
+    using namespace juce;
+
     RECT clientRect, windowRect;
     GetClientRect ((HWND) hostWindow, &clientRect);
     GetWindowRect ((HWND) hostWindow, &windowRect);
@@ -91,12 +95,12 @@ extern "C" BOOL WINAPI DllMainRTAS (HINSTANCE, DWORD, LPVOID);
 extern "C" BOOL WINAPI DllMain (HINSTANCE instance, DWORD reason, LPVOID reserved)
 {
     if (reason == DLL_PROCESS_ATTACH)
-        Process::setCurrentModuleInstanceHandle (instance);
+        juce::Process::setCurrentModuleInstanceHandle (instance);
 
     if (GetModuleHandleA ("DAE.DLL") != 0)
         return DllMainRTAS (instance, reason, reserved);
 
-    ignoreUnused (reserved);
+    juce::ignoreUnused (reserved);
     return TRUE;
 }
 
@@ -118,7 +122,7 @@ namespace
             TCHAR windowType [32] = { 0 };
             GetClassName (parent, windowType, 31);
 
-            if (String (windowType).equalsIgnoreCase ("MDIClient"))
+            if (juce::String (windowType).equalsIgnoreCase ("MDIClient"))
             {
                 w = parent;
                 break;
@@ -150,4 +154,5 @@ void JUCE_CALLTYPE passFocusToHostWindow (void* hostWindow)
 }
 
 #endif
+
 #endif

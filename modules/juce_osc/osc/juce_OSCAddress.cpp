@@ -24,13 +24,16 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 namespace
 {
     //==============================================================================
     template <typename CharPointerType>
     class OSCPatternMatcherImpl
     {
-        typedef CharPointerType CharPtr;
+        using CharPtr = CharPointerType;
 
     public:
         //==============================================================================
@@ -39,7 +42,7 @@ namespace
             if (pattern == patternEnd)
                 return matchTerminator (target, targetEnd);
 
-            const juce_wchar c = pattern.getAndAdvance();
+            auto c = pattern.getAndAdvance();
 
             switch (c)
             {
@@ -94,7 +97,7 @@ namespace
             if (pattern == patternEnd)
                 return false;
 
-            // Note: in case this code is ever moved into the more generic CharPointerFunctions,
+            // Note: In case this code is ever moved into the more generic CharPointerFunctions,
             // the next two lines probably will not compile as soon as this class is used with a
             // Char template type parameter that is not the same type as String::Char.
             StringArray set;
@@ -102,7 +105,7 @@ namespace
 
             while (pattern != patternEnd)
             {
-                const juce_wchar c = pattern.getAndAdvance();
+                auto c = pattern.getAndAdvance();
 
                 switch (c)
                 {
@@ -132,9 +135,9 @@ namespace
             if (set.size() == 0)
                 return match (pattern, patternEnd, target, targetEnd);
 
-            for (const String* str = set.begin(); str != set.end(); ++str)
-                if (str->getCharPointer().compareUpTo (target, str->length()) == 0)
-                    if (match (pattern, patternEnd, target + str->length(), targetEnd))
+            for (auto& str : set)
+                if (str.getCharPointer().compareUpTo (target, str.length()) == 0)
+                    if (match (pattern, patternEnd, target + str.length(), targetEnd))
                         return true;
 
             return false;
@@ -152,7 +155,7 @@ namespace
 
             while (pattern != patternEnd)
             {
-                const juce_wchar c = pattern.getAndAdvance();
+                auto c = pattern.getAndAdvance();
 
                 switch (c)
                 {
@@ -200,8 +203,8 @@ namespace
         static bool matchCharSetNegated (const Array<juce_wchar>& set, CharPtr pattern,
                                          CharPtr patternEnd, CharPtr target, CharPtr targetEnd)
         {
-            for (juce_wchar* c = set.begin(); c != set.end(); ++c)
-                if (*target == *c)
+            for (auto c : set)
+                if (*target == c)
                     return false;
 
             return match (pattern, patternEnd, target + 1, targetEnd);
@@ -211,8 +214,8 @@ namespace
         static bool matchCharSetNotNegated (const Array<juce_wchar>& set, CharPtr pattern,
                                             CharPtr patternEnd, CharPtr target, CharPtr targetEnd)
         {
-            for (juce_wchar* c = set.begin(); c != set.end(); ++c)
-                if (*target == *c)
+            for (auto c : set)
+                if (*target == c)
                     if (match (pattern, patternEnd, target + 1, targetEnd))
                         return true;
 
@@ -226,8 +229,8 @@ namespace
             if (target == targetEnd)
                 return false;
 
-            juce_wchar rangeStart = set.getLast();
-            juce_wchar rangeEnd = pattern.getAndAdvance();
+            auto rangeStart = set.getLast();
+            auto rangeEnd = pattern.getAndAdvance();
 
             if (rangeEnd == ']')
             {
@@ -263,7 +266,7 @@ namespace
     template <typename OSCAddressType>
     struct OSCAddressTokeniser
     {
-        typedef OSCAddressTokeniserTraits<OSCAddressType> Traits;
+        using Traits = OSCAddressTokeniserTraits<OSCAddressType>;
 
         //==============================================================================
         static bool isPrintableASCIIChar (juce_wchar c) noexcept
@@ -278,9 +281,10 @@ namespace
 
         static bool containsOnlyAllowedPrintableASCIIChars (const String& string) noexcept
         {
-            for (String::CharPointerType charPtr (string.getCharPointer()); ! charPtr.isEmpty();)
+            for (auto charPtr = string.getCharPointer(); ! charPtr.isEmpty();)
             {
-                juce_wchar c = charPtr.getAndAdvance();
+                auto c = charPtr.getAndAdvance();
+
                 if (! isPrintableASCIIChar (c) || isDisallowedChar (c))
                     return false;
             }
@@ -301,8 +305,8 @@ namespace
             oscSymbols.addTokens (address, "/", StringRef());
             oscSymbols.removeEmptyStrings (false);
 
-            for (String* token = oscSymbols.begin(); token != oscSymbols.end(); ++token)
-                if (! containsOnlyAllowedPrintableASCIIChars (*token))
+            for (auto& token : oscSymbols)
+                if (! containsOnlyAllowedPrintableASCIIChars (token))
                     throw OSCFormatError ("OSC format error: encountered characters not allowed in address string.");
 
             return oscSymbols;
@@ -390,6 +394,7 @@ String OSCAddressPattern::toString() const noexcept
     return asString;
 }
 
+
 //==============================================================================
 //==============================================================================
 #if JUCE_UNIT_TESTS
@@ -397,7 +402,9 @@ String OSCAddressPattern::toString() const noexcept
 class OSCAddressTests : public UnitTest
 {
 public:
-    OSCAddressTests() : UnitTest ("OSCAddress class") {}
+    OSCAddressTests()
+        : UnitTest ("OSCAddress class", UnitTestCategories::osc)
+    {}
 
     void runTest()
     {
@@ -441,7 +448,9 @@ static OSCAddressTests OSCAddressUnitTests;
 class OSCAddressPatternTests  : public UnitTest
 {
 public:
-    OSCAddressPatternTests() : UnitTest ("OSCAddressPattern class") {}
+    OSCAddressPatternTests()
+        : UnitTest ("OSCAddressPattern class", UnitTestCategories::osc)
+    {}
 
     void runTest()
     {
@@ -482,7 +491,7 @@ public:
             expectDoesNotThrow (OSCAddressPattern ("/[a-e]"));
             expectDoesNotThrow (OSCAddressPattern ("/foo/[a-z]x{foo,bar}/*BAZ42/"));
 
-            /* Note: if malformed expressions are used, e.g. "bracenotclosed{" or "{a-e}" or "[-foo]",
+            /* Note: If malformed expressions are used, e.g. "bracenotclosed{" or "{a-e}" or "[-foo]",
                this should not throw at construction time. Instead it should simply fail any pattern match later.
                So there is no need to test for those.
                The reason is that we do not actually parse the expressions now, but only during matching.
@@ -513,7 +522,7 @@ public:
 
         beginTest ("basic string matching");
         {
-            /* Note: the actual expression matching is tested in OSCPatternMatcher, so here we just
+            /* Note: The actual expression matching is tested in OSCPatternMatcher, so here we just
                do some basic tests and check if the matching works with multi-part addresses.
              */
             {
@@ -580,7 +589,9 @@ static OSCAddressPatternTests OSCAddressPatternUnitTests;
 class OSCPatternMatcherTests : public UnitTest
 {
 public:
-    OSCPatternMatcherTests() : UnitTest ("OSCAddress class / pattern matching") {}
+    OSCPatternMatcherTests()
+        : UnitTest ("OSCAddress class / pattern matching", UnitTestCategories::osc)
+    {}
 
     void runTest()
     {
@@ -776,4 +787,6 @@ public:
 
 static OSCPatternMatcherTests OSCPatternMatcherUnitTests;
 
-#endif // JUCE_UNIT_TESTS
+#endif
+
+} // namespace juce

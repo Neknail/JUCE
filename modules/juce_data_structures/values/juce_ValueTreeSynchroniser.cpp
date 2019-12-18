@@ -24,6 +24,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 namespace ValueTreeSynchroniserHelpers
 {
     enum ChangeType
@@ -156,8 +159,6 @@ void ValueTreeSynchroniser::valueTreeChildOrderChanged (ValueTree& parent, int o
     stateChanged (m.getData(), m.getDataSize());
 }
 
-void ValueTreeSynchroniser::valueTreeParentChanged (ValueTree&)  {} // (No action needed here)
-
 bool ValueTreeSynchroniser::applyChange (ValueTree& root, const void* data, size_t dataSize, UndoManager* undoManager)
 {
     MemoryInputStream input (data, dataSize, false);
@@ -235,3 +236,5 @@ bool ValueTreeSynchroniser::applyChange (ValueTree& root, const void* data, size
 
     return false;
 }
+
+} // namespace juce

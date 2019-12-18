@@ -24,11 +24,13 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
+
+    @tags{GUI}
 */
 class JUCE_API  CaretComponent   : public Component,
                                    private Timer
@@ -42,7 +44,7 @@ public:
     CaretComponent (Component* keyFocusOwner);
 
     /** Destructor. */
-    ~CaretComponent();
+    ~CaretComponent() override;
 
     //==============================================================================
     /** Sets the caret's position to place it next to the given character.
@@ -76,3 +78,5 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE (CaretComponent)
 };
+
+} // namespace juce

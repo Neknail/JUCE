@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -35,6 +35,8 @@
     pointing to a particular component or location on the screen.
 
     @see BubbleComponent
+
+    @tags{GUI}
 */
 class JUCE_API  BubbleMessageComponent  : public BubbleComponent,
                                           private Timer
@@ -54,7 +56,7 @@ public:
     BubbleMessageComponent (int fadeOutLengthMs = 150);
 
     /** Destructor. */
-    ~BubbleMessageComponent();
+    ~BubbleMessageComponent() override;
 
     //==============================================================================
     /** Shows a message bubble at a particular position.
@@ -126,3 +128,5 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BubbleMessageComponent)
 };
+
+} // namespace juce

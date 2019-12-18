@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -36,23 +36,22 @@
     GlyphArrangement class will do what you need for text layout.
 
     @see GlyphArrangement, Font
+
+    @tags{Graphics}
 */
-class JUCE_API  PositionedGlyph
+class JUCE_API  PositionedGlyph  final
 {
 public:
     //==============================================================================
     PositionedGlyph() noexcept;
+
     PositionedGlyph (const Font& font, juce_wchar character, int glyphNumber,
                      float anchorX, float baselineY, float width, bool isWhitespace);
 
-    PositionedGlyph (const PositionedGlyph&);
-    PositionedGlyph& operator= (const PositionedGlyph&);
-
-    /** Move constructor */
-    PositionedGlyph (PositionedGlyph&&) noexcept;
-
-    /** Move assignment operator */
-    PositionedGlyph& operator= (PositionedGlyph&&) noexcept;
+    PositionedGlyph (const PositionedGlyph&) = default;
+    PositionedGlyph& operator= (const PositionedGlyph&) = default;
+    PositionedGlyph (PositionedGlyph&&) noexcept = default;
+    PositionedGlyph& operator= (PositionedGlyph&&) noexcept = default;
 
     ~PositionedGlyph();
 
@@ -72,7 +71,7 @@ public:
     /** Returns the y position of the bottom of the glyph. */
     float getBottom() const                     { return y + font.getDescent(); }
     /** Returns the bounds of the glyph. */
-    Rectangle<float> getBounds() const          { return Rectangle<float> (x, getTop(), w, font.getHeight()); }
+    Rectangle<float> getBounds() const          { return { x, getTop(), w, font.getHeight() }; }
 
     //==============================================================================
     /** Shifts the glyph's position by a relative amount. */
@@ -87,7 +86,7 @@ public:
     /** Draws the glyph into a graphics context, with an extra transform applied to it.
         (Note that this may change the context's currently selected font).
     */
-    void draw (Graphics& g, const AffineTransform& transform) const;
+    void draw (Graphics& g, AffineTransform transform) const;
 
     /** Returns the path for this glyph.
         @param path     the glyph's outline will be appended to this path
@@ -119,24 +118,23 @@ private:
     Graphics class, but can be used directly if more control is needed.
 
     @see Font, PositionedGlyph
+
+    @tags{Graphics}
 */
-class JUCE_API  GlyphArrangement
+class JUCE_API  GlyphArrangement  final
 {
 public:
     //==============================================================================
     /** Creates an empty arrangement. */
     GlyphArrangement();
 
-    /** Takes a copy of another arrangement. */
-    GlyphArrangement (const GlyphArrangement&);
-
-    /** Copies another arrangement onto this one.
-        To add another arrangement without clearing this one, use addGlyphArrangement().
-    */
-    GlyphArrangement& operator= (const GlyphArrangement&);
+    GlyphArrangement (const GlyphArrangement&) = default;
+    GlyphArrangement& operator= (const GlyphArrangement&) = default;
+    GlyphArrangement (GlyphArrangement&&) = default;
+    GlyphArrangement& operator= (GlyphArrangement&&) = default;
 
     /** Destructor. */
-    ~GlyphArrangement();
+    ~GlyphArrangement() = default;
 
     //==============================================================================
     /** Returns the total number of glyphs in the arrangement. */
@@ -148,7 +146,10 @@ public:
                         careful not to pass an out-of-range index here, as it
                         doesn't do any bounds-checking.
     */
-    PositionedGlyph& getGlyph (int index) const noexcept;
+    PositionedGlyph& getGlyph (int index) noexcept;
+
+    const PositionedGlyph* begin() const                        { return glyphs.begin(); }
+    const PositionedGlyph* end() const                          { return glyphs.end(); }
 
     //==============================================================================
     /** Clears all text from the arrangement and resets it. */
@@ -189,18 +190,19 @@ public:
         between x and (x + maxLineWidth).
 
         The y coordinate is the position of the baseline of the first line of text - subsequent
-        lines will be placed below it, separated by a distance of font.getHeight().
+        lines will be placed below it, separated by a distance of font.getHeight() + leading.
     */
     void addJustifiedText (const Font& font,
                            const String& text,
                            float x, float y,
                            float maxLineWidth,
-                           Justification horizontalLayout);
+                           Justification horizontalLayout,
+                           float leading = 0.0f);
 
     /** Tries to fit some text within a given space.
 
         This does its best to make the given text readable within the specified rectangle,
-        so it useful for labelling things.
+        so it's useful for labelling things.
 
         If the text is too big, it'll be squashed horizontally or broken over multiple lines
         if the maximumLinesToUse value allows this. If the text just won't fit into the space,
@@ -232,7 +234,7 @@ public:
     //==============================================================================
     /** Draws this glyph arrangement to a graphics context.
 
-        This uses cached bitmaps so is much faster than the draw (Graphics&, const AffineTransform&)
+        This uses cached bitmaps so is much faster than the draw (Graphics&, AffineTransform)
         method, which renders the glyphs as filled vectors.
     */
     void draw (const Graphics&) const;
@@ -242,7 +244,7 @@ public:
         This renders the paths as filled vectors, so is far slower than the draw (Graphics&)
         method for non-transformed arrangements.
     */
-    void draw (const Graphics&, const AffineTransform&) const;
+    void draw (const Graphics&, AffineTransform) const;
 
     /** Converts the set of glyphs into a path.
         @param path     the glyphs' outlines will be appended to this path
@@ -319,7 +321,9 @@ private:
     void splitLines (const String&, Font, int start, float x, float y, float w, float h, int maxLines,
                      float lineWidth, Justification, float minimumHorizontalScale);
     void addLinesWithLineBreaks (const String&, const Font&, float x, float y, float width, float height, Justification);
-    void drawGlyphUnderline (const Graphics&, const PositionedGlyph&, int, const AffineTransform&) const;
+    void drawGlyphUnderline (const Graphics&, const PositionedGlyph&, int, AffineTransform) const;
 
     JUCE_LEAK_DETECTOR (GlyphArrangement)
 };
+
+} // namespace juce

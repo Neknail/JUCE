@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -36,6 +36,8 @@
     toggle button.
 
     @see Toolbar, ToolbarItemFactory, ToolbarItemComponent, Drawable, Button
+
+    @tags{GUI}
 */
 class JUCE_API  ToolbarButton   : public ToolbarItemComponent
 {
@@ -60,11 +62,11 @@ public:
     */
     ToolbarButton (int itemId,
                    const String& labelText,
-                   Drawable* normalImage,
-                   Drawable* toggledOnImage);
+                   std::unique_ptr<Drawable> normalImage,
+                   std::unique_ptr<Drawable> toggledOnImage);
 
     /** Destructor. */
-    ~ToolbarButton();
+    ~ToolbarButton() override;
 
 
     //==============================================================================
@@ -84,8 +86,8 @@ public:
 
 private:
     //==============================================================================
-    ScopedPointer<Drawable> normalImage, toggledOnImage;
-    Drawable* currentImage;
+    std::unique_ptr<Drawable> normalImage, toggledOnImage;
+    Drawable* currentImage = nullptr;
 
     void updateDrawable();
     Drawable* getImageToUse() const;
@@ -93,3 +95,5 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ToolbarButton)
 };
+
+} // namespace juce

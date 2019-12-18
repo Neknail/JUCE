@@ -24,6 +24,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 #if JUCE_USE_OGGVORBIS || defined (DOXYGEN)
 
 //==============================================================================
@@ -33,13 +36,15 @@
     To compile this, you'll need to set the JUCE_USE_OGGVORBIS flag.
 
     @see AudioFormat,
+
+    @tags{Audio}
 */
 class JUCE_API  OggVorbisAudioFormat  : public AudioFormat
 {
 public:
     //==============================================================================
     OggVorbisAudioFormat();
-    ~OggVorbisAudioFormat();
+    ~OggVorbisAudioFormat() override;
 
     //==============================================================================
     Array<int> getPossibleSampleRates() override;
@@ -86,6 +91,7 @@ public:
                                         int bitsPerSample,
                                         const StringPairArray& metadataValues,
                                         int qualityOptionIndex) override;
+    using AudioFormat::createWriterFor;
 
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OggVorbisAudioFormat)
@@ -93,3 +99,5 @@ private:
 
 
 #endif
+
+} // namespace juce

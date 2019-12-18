@@ -20,6 +20,10 @@
   ==============================================================================
 */
 
+namespace juce
+{
+namespace BlocksProtocol
+{
 
 /**
     All sysex messages to or from a BLOCKS device begin with these header bytes.
@@ -42,12 +46,17 @@ static uint8 calculatePacketChecksum (const uint8* data, uint32 size) noexcept
 
 
 //==============================================================================
+/**
+    Helper class to define an integer with a specific bit size.
+
+    @tags{Blocks}
+*/
 template <int numBits>
 struct IntegerWithBitSize
 {
-    IntegerWithBitSize() noexcept = default;
-    IntegerWithBitSize (const IntegerWithBitSize&) noexcept = default;
-    IntegerWithBitSize& operator= (const IntegerWithBitSize&) noexcept = default;
+    IntegerWithBitSize() = default;
+    IntegerWithBitSize (const IntegerWithBitSize&) = default;
+    IntegerWithBitSize& operator= (const IntegerWithBitSize&) = default;
 
     IntegerWithBitSize (uint32 v) noexcept : value (v)
     {
@@ -92,6 +101,8 @@ struct IntegerWithBitSize
 /**
     This helper class allocates a block of 7-bit bytes and can push sequences of bits into it.
     @see Packed7BitArrayReader
+
+    @tags{Blocks}
 */
 template <int allocatedBytes>
 struct Packed7BitArrayBuilder
@@ -170,7 +181,7 @@ struct Packed7BitArrayBuilder
             {
                 const int bitsToDo = jmin (7 - bitsInCurrentByte, numBits);
 
-                data[bytesWritten] |= ((value & ((1 << bitsToDo) - 1)) << bitsInCurrentByte);
+                data[bytesWritten] |= ((value & (uint32) ((1 << bitsToDo) - 1)) << bitsInCurrentByte);
                 value >>= bitsToDo;
                 numBits -= bitsToDo;
                 bitsInCurrentByte += bitsToDo;
@@ -184,6 +195,7 @@ struct Packed7BitArrayBuilder
         }
     }
 
+    /** Describes the current building state */
     struct State
     {
         int bytesWritten, bitsInCurrentByte;
@@ -201,7 +213,7 @@ struct Packed7BitArrayBuilder
     }
 
 private:
-    uint8 data[allocatedBytes];
+    uint8 data[(size_t) allocatedBytes];
     int bytesWritten = 0, bitsInCurrentByte = 0;
 };
 
@@ -210,6 +222,8 @@ private:
 /**
     This helper class reads from a block of 7-bit bytes as sequences of bits.
     @see Packed7BitArrayBuilder
+
+    @tags{Blocks}
 */
 struct Packed7BitArrayReader
 {
@@ -239,13 +253,13 @@ struct Packed7BitArrayReader
 
         while (numBits > 0)
         {
-            const uint32 valueInCurrentByte = (*data >> bitsReadInCurrentByte);
+            const auto valueInCurrentByte = (uint32) (*data >> bitsReadInCurrentByte);
 
             const int bitsAvailable = 7 - bitsReadInCurrentByte;
 
             if (bitsAvailable > numBits)
             {
-                value |= ((valueInCurrentByte & ((1 << numBits) - 1)) << bitsSoFar);
+                value |= ((valueInCurrentByte & (uint32) ((1 << numBits) - 1)) << bitsSoFar);
                 bitsReadInCurrentByte += numBits;
                 break;
             }
@@ -270,3 +284,6 @@ private:
     const uint8* data;
     int totalBits, bitsReadInCurrentByte = 0;
 };
+
+} // namespace BlocksProtocol
+} // namespace juce

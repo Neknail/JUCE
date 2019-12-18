@@ -24,6 +24,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 PathStrokeType::PathStrokeType (float strokeThickness) noexcept
     : thickness (strokeThickness), jointStyle (mitered), endStyle (butt)
 {
@@ -240,13 +243,13 @@ namespace PathStrokeHelpers
 
                     if (std::abs (angle1 - angle2) > angleIncrement)
                     {
-                        if (angle2 > angle1 + float_Pi
-                             || (angle2 < angle1 && angle2 >= angle1 - float_Pi))
+                        if (angle2 > angle1 + MathConstants<float>::pi
+                             || (angle2 < angle1 && angle2 >= angle1 - MathConstants<float>::pi))
                         {
                             if (angle2 > angle1)
-                                angle2 -= float_Pi * 2.0f;
+                                angle2 -= MathConstants<float>::twoPi;
 
-                            jassert (angle1 <= angle2 + float_Pi);
+                            jassert (angle1 <= angle2 + MathConstants<float>::pi);
 
                             angle1 -= angleIncrement;
                             while (angle1 > angle2)
@@ -260,9 +263,9 @@ namespace PathStrokeHelpers
                         else
                         {
                             if (angle1 > angle2)
-                                angle1 -= float_Pi * 2.0f;
+                                angle1 -= MathConstants<float>::twoPi;
 
-                            jassert (angle1 >= angle2 - float_Pi);
+                            jassert (angle1 >= angle2 - MathConstants<float>::pi);
 
                             angle1 += angleIncrement;
                             while (angle1 < angle2)
@@ -651,10 +654,10 @@ namespace PathStrokeHelpers
 }
 
 void PathStrokeType::createStrokedPath (Path& destPath, const Path& sourcePath,
-                                        const AffineTransform& transform, const float extraAccuracy) const
+                                        const AffineTransform& transform, float extraAccuracy) const
 {
     PathStrokeHelpers::createStroke (thickness, jointStyle, endStyle, destPath, sourcePath,
-                                     transform, extraAccuracy, 0);
+                                     transform, extraAccuracy, nullptr);
 }
 
 void PathStrokeType::createDashedStroke (Path& destPath,
@@ -662,7 +665,7 @@ void PathStrokeType::createDashedStroke (Path& destPath,
                                          const float* dashLengths,
                                          int numDashLengths,
                                          const AffineTransform& transform,
-                                         const float extraAccuracy) const
+                                         float extraAccuracy) const
 {
     jassert (extraAccuracy > 0);
 
@@ -738,3 +741,5 @@ void PathStrokeType::createStrokeWithArrowheads (Path& destPath,
     PathStrokeHelpers::createStroke (thickness, jointStyle, endStyle,
                                      destPath, sourcePath, transform, extraAccuracy, &head);
 }
+
+} // namespace juce

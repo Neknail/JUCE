@@ -35,7 +35,7 @@
 
   ID:               juce_graphics
   vendor:           juce
-  version:          5.0.2
+  version:          5.4.5
   name:             JUCE graphics classes
   description:      Classes for 2D vector graphics, image loading/saving, font handling, etc.
   website:          http://www.juce.com/juce
@@ -77,6 +77,15 @@
  #define JUCE_USE_DIRECTWRITE 1
 #endif
 
+/** Config: JUCE_DISABLE_COREGRAPHICS_FONT_SMOOTHING
+
+    Setting this flag will turn off CoreGraphics font smoothing, which some people
+    find makes the text too 'fat' for their taste.
+*/
+#ifndef JUCE_DISABLE_COREGRAPHICS_FONT_SMOOTHING
+ #define JUCE_DISABLE_COREGRAPHICS_FONT_SMOOTHING 0
+#endif
+
 #ifndef JUCE_INCLUDE_PNGLIB_CODE
  #define JUCE_INCLUDE_PNGLIB_CODE 1
 #endif
@@ -92,19 +101,20 @@
 //==============================================================================
 namespace juce
 {
-
-class Image;
-class AffineTransform;
-class Path;
-class Font;
-class Graphics;
-class FillType;
-class LowLevelGraphicsContext;
+    class Image;
+    class AffineTransform;
+    class Path;
+    class Font;
+    class Graphics;
+    class FillType;
+    class LowLevelGraphicsContext;
+}
 
 #include "geometry/juce_AffineTransform.h"
 #include "geometry/juce_Point.h"
 #include "geometry/juce_Line.h"
 #include "geometry/juce_Rectangle.h"
+#include "geometry/juce_Parallelogram.h"
 #include "placement/juce_Justification.h"
 #include "geometry/juce_Path.h"
 #include "geometry/juce_RectangleList.h"
@@ -142,4 +152,6 @@ class LowLevelGraphicsContext;
  #include "native/juce_mac_CoreGraphicsContext.h"
 #endif
 
-}
+#if JUCE_DIRECT2D && JUCE_WINDOWS
+#include "native/juce_win32_Direct2DGraphicsContext.h"
+#endif

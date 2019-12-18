@@ -24,12 +24,17 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 #if JUCE_UNIT_TESTS
 
 class CachedValueTests  : public UnitTest
 {
 public:
-    CachedValueTests() : UnitTest ("CachedValues") {}
+    CachedValueTests()
+        : UnitTest ("CachedValues", UnitTestCategories::values)
+    {}
 
     void runTest() override
     {
@@ -141,14 +146,11 @@ public:
 
             expect (t["testkey"] == var());
         }
-
-        beginTest ("reset value");
-        {
-
-        }
     }
 };
 
 static CachedValueTests cachedValueTests;
 
 #endif
+
+} // namespace juce

@@ -20,6 +20,14 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
+#if ! JUCE_MINGW
+ #pragma intrinsic (__cpuid)
+ #pragma intrinsic (__rdtsc)
+#endif
+
 void Logger::outputDebugString (const String& text)
 {
     OutputDebugString ((text + "\n").toWideCharPointer());
@@ -32,8 +40,6 @@ void Logger::outputDebugString (const String& text)
 #endif
 
 //==============================================================================
-#pragma intrinsic (__cpuid)
-#pragma intrinsic (__rdtsc)
 
 #if JUCE_MINGW
 static void callCPUID (int result[4], uint32 type)
@@ -84,7 +90,7 @@ String SystemStats::getCpuModel()
 
     const int numExtIDs = info[0];
 
-    if (numExtIDs < 0x80000004)  // if brand string is unsupported
+    if ((unsigned) numExtIDs < 0x80000004)  // if brand string is unsupported
         return {};
 
     callCPUID (info, 0x80000002);
@@ -101,6 +107,13 @@ String SystemStats::getCpuModel()
 
 static int findNumberOfPhysicalCores() noexcept
 {
+   #if JUCE_MINGW
+    // Not implemented in MinGW
+    jassertfalse;
+
+    return 1;
+   #else
+
     int numPhysicalCores = 0;
     DWORD bufferSize = 0;
     GetLogicalProcessorInformation (nullptr, &bufferSize);
@@ -116,6 +129,7 @@ static int findNumberOfPhysicalCores() noexcept
     }
 
     return numPhysicalCores;
+   #endif // JUCE_MINGW
 }
 
 //==============================================================================
@@ -137,7 +151,17 @@ void CPUInformation::initialise() noexcept
 
     callCPUID (info, 7);
 
-    hasAVX2 = (info[1] & (1 << 5)) != 0;
+    hasAVX2            = (info[1] & (1 << 5))   != 0;
+    hasAVX512F         = (info[1] & (1u << 16)) != 0;
+    hasAVX512DQ        = (info[1] & (1u << 17)) != 0;
+    hasAVX512IFMA      = (info[1] & (1u << 21)) != 0;
+    hasAVX512PF        = (info[1] & (1u << 26)) != 0;
+    hasAVX512ER        = (info[1] & (1u << 27)) != 0;
+    hasAVX512CD        = (info[1] & (1u << 28)) != 0;
+    hasAVX512BW        = (info[1] & (1u << 30)) != 0;
+    hasAVX512VL        = (info[1] & (1u << 31)) != 0;
+    hasAVX512VBMI      = (info[2] & (1u <<  1)) != 0;
+    hasAVX512VPOPCNTDQ = (info[2] & (1u << 14)) != 0;
 
     SYSTEM_INFO systemInfo;
     GetNativeSystemInfo (&systemInfo);
@@ -161,59 +185,44 @@ static DebugFlagsInitialiser debugFlagsInitialiser;
 #endif
 
 //==============================================================================
-static bool isWindowsVersionOrLater (SystemStats::OperatingSystemType target)
+RTL_OSVERSIONINFOW getWindowsVersionInfo()
 {
-    OSVERSIONINFOEX info;
-    zerostruct (info);
-    info.dwOSVersionInfoSize = sizeof (OSVERSIONINFOEX);
+    RTL_OSVERSIONINFOW versionInfo = { 0 };
 
-    if (target >= SystemStats::Windows10)
+    if (auto* moduleHandle = ::GetModuleHandleW (L"ntdll.dll"))
     {
-        info.dwMajorVersion = 10;
-        info.dwMinorVersion = 0;
-    }
-    else if (target >= SystemStats::WinVista)
-    {
-        info.dwMajorVersion = 6;
+        using RtlGetVersion = LONG (WINAPI*) (PRTL_OSVERSIONINFOW);
 
-        switch (target)
+        if (auto* rtlGetVersion = (RtlGetVersion) ::GetProcAddress (moduleHandle, "RtlGetVersion"))
         {
-            case SystemStats::WinVista:    break;
-            case SystemStats::Windows7:    info.dwMinorVersion = 1; break;
-            case SystemStats::Windows8_0:  info.dwMinorVersion = 2; break;
-            case SystemStats::Windows8_1:  info.dwMinorVersion = 3; break;
-            default:                       jassertfalse; break;
+            versionInfo.dwOSVersionInfoSize = sizeof (versionInfo);
+            LONG STATUS_SUCCESS = 0;
+
+            if (rtlGetVersion (&versionInfo) != STATUS_SUCCESS)
+                versionInfo = { 0 };
         }
     }
-    else
-    {
-        info.dwMajorVersion = 5;
-        info.dwMinorVersion = target >= SystemStats::WinXP ? 1 : 0;
-    }
 
-    DWORDLONG mask = 0;
-
-    VER_SET_CONDITION (mask, VER_MAJORVERSION,     VER_GREATER_EQUAL);
-    VER_SET_CONDITION (mask, VER_MINORVERSION,     VER_GREATER_EQUAL);
-    VER_SET_CONDITION (mask, VER_SERVICEPACKMAJOR, VER_GREATER_EQUAL);
-    VER_SET_CONDITION (mask, VER_SERVICEPACKMINOR, VER_GREATER_EQUAL);
-
-    return VerifyVersionInfo (&info,
-                              VER_MAJORVERSION | VER_MINORVERSION
-                               | VER_SERVICEPACKMAJOR | VER_SERVICEPACKMINOR,
-                              mask) != FALSE;
+    return versionInfo;
 }
 
 SystemStats::OperatingSystemType SystemStats::getOperatingSystemType()
 {
-    const SystemStats::OperatingSystemType types[]
-            = { Windows10, Windows8_1, Windows8_0, Windows7, WinVista, WinXP, Win2000 };
+    auto versionInfo = getWindowsVersionInfo();
+    auto major = versionInfo.dwMajorVersion;
+    auto minor = versionInfo.dwMinorVersion;
 
-    for (int i = 0; i < numElementsInArray (types); ++i)
-        if (isWindowsVersionOrLater (types[i]))
-            return types[i];
+    jassert (major <= 10); // need to add support for new version!
 
-    jassertfalse;  // need to support whatever new version is running!
+    if (major == 10)                 return Windows10;
+    if (major == 6 && minor == 3)    return Windows8_1;
+    if (major == 6 && minor == 2)    return Windows8_0;
+    if (major == 6 && minor == 1)    return Windows7;
+    if (major == 6 && minor == 0)    return WinVista;
+    if (major == 5 && minor == 1)    return WinXP;
+    if (major == 5 && minor == 0)    return Win2000;
+
+    jassertfalse;
     return UnknownOS;
 }
 
@@ -237,6 +246,23 @@ String SystemStats::getOperatingSystemName()
 }
 
 String SystemStats::getDeviceDescription()
+{
+   #if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP
+    return "Windows (Desktop)";
+   #elif WINAPI_FAMILY == WINAPI_FAMILY_PC_APP
+    return "Windows (Store)";
+   #elif WINAPI_FAMILY == WINAPI_FAMILY_PHONE_APP
+    return "Windows (Phone)";
+   #elif WINAPI_FAMILY == WINAPI_FAMILY_SYSTEM
+    return "Windows (System)";
+   #elif WINAPI_FAMILY == WINAPI_FAMILY_SERVER
+    return "Windows (Server)";
+   #else
+    return "Windows";
+   #endif
+}
+
+String SystemStats::getDeviceManufacturer()
 {
     return {};
 }
@@ -271,8 +297,9 @@ int SystemStats::getMemorySizeInMegabytes()
 //==============================================================================
 String SystemStats::getEnvironmentVariable (const String& name, const String& defaultValue)
 {
-    DWORD len = GetEnvironmentVariableW (name.toWideCharPointer(), nullptr, 0);
-    if (GetLastError() == ERROR_ENVVAR_NOT_FOUND)
+    auto len = GetEnvironmentVariableW (name.toWideCharPointer(), nullptr, 0);
+
+    if (len == 0)
         return String (defaultValue);
 
     HeapBlock<WCHAR> buffer (len);
@@ -308,7 +335,7 @@ public:
        #endif
 
        #if JUCE_WIN32_TIMER_PERIOD > 0
-        const MMRESULT res = timeBeginPeriod (JUCE_WIN32_TIMER_PERIOD);
+        auto res = timeBeginPeriod (JUCE_WIN32_TIMER_PERIOD);
         ignoreUnused (res);
         jassert (res == TIMERR_NOERROR);
        #endif
@@ -369,10 +396,10 @@ static int64 juce_getClockCycleCounter() noexcept
    #endif
 }
 
-int SystemStats::getCpuSpeedInMegaherz()
+int SystemStats::getCpuSpeedInMegahertz()
 {
-    const int64 cycles = juce_getClockCycleCounter();
-    const uint32 millis = Time::getMillisecondCounter();
+    auto cycles = juce_getClockCycleCounter();
+    auto millis = Time::getMillisecondCounter();
     int lastResult = 0;
 
     for (;;)
@@ -380,12 +407,12 @@ int SystemStats::getCpuSpeedInMegaherz()
         int n = 1000000;
         while (--n > 0) {}
 
-        const uint32 millisElapsed = Time::getMillisecondCounter() - millis;
-        const int64 cyclesNow = juce_getClockCycleCounter();
+        auto millisElapsed = Time::getMillisecondCounter() - millis;
+        auto cyclesNow = juce_getClockCycleCounter();
 
         if (millisElapsed > 80)
         {
-            const int newResult = (int) (((cyclesNow - cycles) / millisElapsed) / 1000);
+            auto newResult = (int) (((cyclesNow - cycles) / millisElapsed) / 1000);
 
             if (millisElapsed > 500 || (lastResult == newResult && newResult > 100))
                 return newResult;
@@ -414,7 +441,7 @@ bool Time::setSystemTimeToThisTime() const
     // first one sets it up, the second one kicks it in.
     // NB: the local variable is here to avoid analysers warning about having
     // two identical sub-expressions in the return statement
-    bool firstCallToSetTimezone = SetLocalTime (&st) != 0;
+    auto firstCallToSetTimezone = SetLocalTime (&st) != 0;
     return firstCallToSetTimezone && SetLocalTime (&st) != 0;
 }
 
@@ -430,7 +457,7 @@ int SystemStats::getPageSize()
 String SystemStats::getLogonName()
 {
     TCHAR text [256] = { 0 };
-    DWORD len = (DWORD) numElementsInArray (text) - 1;
+    auto len = (DWORD) numElementsInArray (text) - 1;
     GetUserName (text, &len);
     return String (text, len);
 }
@@ -443,8 +470,8 @@ String SystemStats::getFullUserName()
 String SystemStats::getComputerName()
 {
     TCHAR text[128] = { 0 };
-    DWORD len = (DWORD) numElementsInArray (text) - 1;
-    GetComputerName (text, &len);
+    auto len = (DWORD) numElementsInArray (text) - 1;
+    GetComputerNameEx (ComputerNamePhysicalDnsHostname, text, &len);
     return String (text, len);
 }
 
@@ -468,13 +495,15 @@ String SystemStats::getDisplayLanguage()
     if (getUserDefaultUILanguage == nullptr)
         return "en";
 
-    const DWORD langID = MAKELCID (getUserDefaultUILanguage(), SORT_DEFAULT);
+    auto langID = MAKELCID (getUserDefaultUILanguage(), SORT_DEFAULT);
 
-    String mainLang (getLocaleValue (langID, LOCALE_SISO639LANGNAME, "en"));
-    String region   (getLocaleValue (langID, LOCALE_SISO3166CTRYNAME, nullptr));
+    auto mainLang = getLocaleValue (langID, LOCALE_SISO639LANGNAME, "en");
+    auto region   = getLocaleValue (langID, LOCALE_SISO3166CTRYNAME, nullptr);
 
     if (region.isNotEmpty())
         mainLang << '-' << region;
 
     return mainLang;
 }
+
+} // namespace juce

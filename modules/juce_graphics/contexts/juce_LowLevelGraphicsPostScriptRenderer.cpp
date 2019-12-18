@@ -24,6 +24,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 // this will throw an assertion if you try to draw something that's not
 // possible in postscript
 #define WARN_ABOUT_NON_POSTSCRIPT_OPERATIONS 0
@@ -348,8 +351,8 @@ void LowLevelGraphicsPostScriptRenderer::fillRect (const Rectangle<float>& r)
         writeClip();
         writeColour (stateStack.getLast()->fillType.colour);
 
-        Rectangle<float> r2 (r.translated ((float) stateStack.getLast()->xOffset,
-                                           (float) stateStack.getLast()->yOffset));
+        auto r2 = r.translated ((float) stateStack.getLast()->xOffset,
+                                (float) stateStack.getLast()->yOffset);
 
         out << r2.getX() << ' ' << -r2.getBottom() << ' ' << r2.getWidth() << ' ' << r2.getHeight() << " rectfill\n";
     }
@@ -398,7 +401,7 @@ void LowLevelGraphicsPostScriptRenderer::fillPath (const Path& path, const Affin
             out << "clip\n";
         }
 
-        const Rectangle<int> bounds (stateStack.getLast()->clip.getBounds());
+        auto bounds = stateStack.getLast()->clip.getBounds();
 
         // ideally this would draw lots of lines or ellipses to approximate the gradient, but for the
         // time-being, this just fills it with the average colour..
@@ -533,3 +536,5 @@ void LowLevelGraphicsPostScriptRenderer::drawGlyph (int glyphNumber, const Affin
     font.getTypeface()->getOutlineForGlyph (glyphNumber, p);
     fillPath (p, AffineTransform::scale (font.getHeight() * font.getHorizontalScale(), font.getHeight()).followedBy (transform));
 }
+
+} // namespace juce

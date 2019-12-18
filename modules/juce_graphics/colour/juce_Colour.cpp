@@ -24,6 +24,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 namespace ColourHelpers
 {
     static uint8 floatToUInt8 (const float n) noexcept
@@ -103,7 +106,7 @@ namespace ColourHelpers
             if (h < 3.0f)   return PixelARGB (alpha, x, intV, (uint8) roundToInt (v * (1.0f - (s * (1.0f - f)))));
             if (h < 4.0f)   return PixelARGB (alpha, x,       (uint8) roundToInt (v * (1.0f - s * f)), intV);
             if (h < 5.0f)   return PixelARGB (alpha,          (uint8) roundToInt (v * (1.0f - (s * (1.0f - f)))), x, intV);
-                            return PixelARGB (alpha, intV, x, (uint8) roundToInt (v * (1.0f - s * f)));
+            return                 PixelARGB (alpha, intV, x, (uint8) roundToInt (v * (1.0f - s * f)));
         }
 
         float hue, saturation, brightness;
@@ -137,22 +140,6 @@ namespace ColourHelpers
 }
 
 //==============================================================================
-Colour::Colour() noexcept
-    : argb (0, 0, 0, 0)
-{
-}
-
-Colour::Colour (const Colour& other) noexcept
-    : argb (other.argb)
-{
-}
-
-Colour& Colour::operator= (const Colour& other) noexcept
-{
-    argb = other.argb;
-    return *this;
-}
-
 bool Colour::operator== (const Colour& other) const noexcept    { return argb.getNativeARGB() == other.argb.getNativeARGB(); }
 bool Colour::operator!= (const Colour& other) const noexcept    { return argb.getNativeARGB() != other.argb.getNativeARGB(); }
 
@@ -223,11 +210,6 @@ Colour::Colour (PixelAlpha alpha) noexcept
     : argb (Colour (alpha.getInARGBMaskOrder()).argb)
 {
 }
-
-Colour::~Colour() noexcept
-{
-}
-
 
 //==============================================================================
 const PixelARGB Colour::getPixelARGB() const noexcept
@@ -461,3 +443,5 @@ String Colour::toDisplayString (const bool includeAlphaValue) const
                   .paddedLeft ('0', includeAlphaValue ? 8 : 6)
                   .toUpperCase();
 }
+
+} // namespace juce

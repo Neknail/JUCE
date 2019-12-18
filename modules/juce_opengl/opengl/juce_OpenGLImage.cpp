@@ -24,6 +24,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 class OpenGLFrameBufferImage   : public ImagePixelData
 {
 public:
@@ -37,24 +40,33 @@ public:
 
     bool initialise()
     {
-        return frameBuffer.initialise (context, width, height);
+        if (! frameBuffer.initialise (context, width, height))
+            return false;
+
+        frameBuffer.clear (Colours::transparentBlack);
+        return true;
     }
 
-    LowLevelGraphicsContext* createLowLevelContext() override
+    std::unique_ptr<LowLevelGraphicsContext> createLowLevelContext() override
     {
         sendDataChangeMessage();
         return createOpenGLGraphicsContext (context, frameBuffer);
     }
 
-    ImageType* createType() const override     { return new OpenGLImageType(); }
+    std::unique_ptr<ImageType> createType() const override     { return std::make_unique<OpenGLImageType>(); }
 
     ImagePixelData::Ptr clone() override
     {
-        Image newImage (new OpenGLFrameBufferImage (context, width, height));
-        Graphics g (newImage);
-        g.drawImageAt (Image (this), 0, 0, false);
+        std::unique_ptr<OpenGLFrameBufferImage> im (new OpenGLFrameBufferImage (context, width, height));
 
-        return newImage.getPixelData();
+        if (! im->initialise())
+            return ImagePixelData::Ptr();
+
+        Image newImage (im.release());
+        Graphics g (newImage);
+        g.drawImageAt (Image (*this), 0, 0, false);
+
+        return ImagePixelData::Ptr (newImage.getPixelData());
     }
 
     void initialiseBitmapData (Image::BitmapData& bitmapData, int x, int y, Image::BitmapData::ReadWriteMode mode) override
@@ -100,8 +112,8 @@ private:
 
         static void verticalRowFlip (PixelARGB* const data, const int w, const int h)
         {
-            HeapBlock<PixelARGB> tempRow ((size_t) w);
-            const size_t rowSize = sizeof (PixelARGB) * (size_t) w;
+            HeapBlock<PixelARGB> tempRow (w);
+            auto rowSize = (size_t) w * sizeof (PixelARGB);
 
             for (int y = 0; y < h / 2; ++y)
             {
@@ -122,8 +134,8 @@ private:
 
         void write (const PixelARGB* const data) const noexcept
         {
-            HeapBlock<PixelARGB> invertedCopy ((size_t) (area.getWidth() * area.getHeight()));
-            const size_t rowSize = sizeof (PixelARGB) * (size_t) area.getWidth();
+            HeapBlock<PixelARGB> invertedCopy (area.getWidth() * area.getHeight());
+            auto rowSize = (size_t) area.getWidth() * sizeof (PixelARGB);
 
             for (int y = 0; y < area.getHeight(); ++y)
                 memcpy (invertedCopy + area.getWidth() * y,
@@ -153,10 +165,10 @@ private:
 
         static void initialise (OpenGLFrameBuffer& frameBuffer, Image::BitmapData& bitmapData, int x, int y)
         {
-            DataReleaser* r = new DataReleaser (frameBuffer, x, y, bitmapData.width, bitmapData.height);
-            bitmapData.dataReleaser = r;
+            auto* r = new DataReleaser (frameBuffer, x, y, bitmapData.width, bitmapData.height);
+            bitmapData.dataReleaser.reset (r);
 
-            bitmapData.data = (uint8*) r->data.getData();
+            bitmapData.data = (uint8*) r->data.get();
             bitmapData.lineStride = (bitmapData.width * bitmapData.pixelStride + 3) & ~3;
 
             ReaderType::read (frameBuffer, bitmapData, x, y);
@@ -184,13 +196,12 @@ ImagePixelData::Ptr OpenGLImageType::create (Image::PixelFormat, int width, int 
     OpenGLContext* currentContext = OpenGLContext::getCurrentContext();
     jassert (currentContext != nullptr); // an OpenGL image can only be created when a valid context is active!
 
-    ScopedPointer<OpenGLFrameBufferImage> im (new OpenGLFrameBufferImage (*currentContext, width, height));
+    std::unique_ptr<OpenGLFrameBufferImage> im (new OpenGLFrameBufferImage (*currentContext, width, height));
 
     if (! im->initialise())
         return ImagePixelData::Ptr();
 
-    im->frameBuffer.clear (Colours::transparentBlack);
-    return im.release();
+    return *im.release();
 }
 
 OpenGLFrameBuffer* OpenGLImageType::getFrameBufferFrom (const Image& image)
@@ -200,3 +211,5 @@ OpenGLFrameBuffer* OpenGLImageType::getFrameBufferFrom (const Image& image)
 
     return nullptr;
 }
+
+} // namespace juce

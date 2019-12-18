@@ -15,8 +15,13 @@
 
  ********************************************************************/
 
-#ifdef JUCE_MSVC
+#if JUCE_MSVC
  #pragma warning (disable: 4456 4457 4459)
+#endif
+
+#if JUCE_GCC && __GNUC__ > 6
+ #pragma GCC diagnostic push
+ #pragma GCC diagnostic ignored "-Wmisleading-indentation"
 #endif
 
 #include <stdlib.h>
@@ -1561,7 +1566,7 @@ int ov_pcm_seek_page(OggVorbis_File *vf,ogg_int64_t pos){
         if(op.granulepos!=-1){
           vf->pcm_offset=op.granulepos-vf->pcmlengths[vf->current_link*2];
           if(vf->pcm_offset<0)vf->pcm_offset=0;
-          vf->pcm_offset+=total;
+            vf->pcm_offset+=total;
           break;
         }else
           result=ogg_stream_packetout(&vf->os,NULL);
@@ -1944,7 +1949,7 @@ long ov_read_filter(OggVorbis_File *vf,char *buffer,int length,
             vorbis_fpu_setround(&fpu);
             for(i=0;i<channels;i++) { /* It's faster in this order */
               float *src=pcm[i];
-              short *dest=((short *)buffer)+i;
+              short *dest=(reinterpret_cast<short*> (buffer))+i;
               for(j=0;j<samples;j++) {
                 val=vorbis_ftoi(src[j]*32768.f);
                 if(val>32767)val=32767;
@@ -1960,7 +1965,7 @@ long ov_read_filter(OggVorbis_File *vf,char *buffer,int length,
             vorbis_fpu_setround(&fpu);
             for(i=0;i<channels;i++) {
               float *src=pcm[i];
-              short *dest=((short *)buffer)+i;
+              short *dest=(reinterpret_cast<short*> (buffer))+i;
               for(j=0;j<samples;j++) {
                 val=vorbis_ftoi(src[j]*32768.f);
                 if(val>32767)val=32767;
@@ -2347,3 +2352,7 @@ int ov_time_seek_lap(OggVorbis_File *vf,double pos){
 int ov_time_seek_page_lap(OggVorbis_File *vf,double pos){
   return _ov_d_seek_lap(vf,pos,ov_time_seek_page);
 }
+
+#if JUCE_GCC && __GNUC__ > 6
+ #pragma GCC diagnostic pop
+#endif

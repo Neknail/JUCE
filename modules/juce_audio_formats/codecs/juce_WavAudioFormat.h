@@ -24,11 +24,16 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 //==============================================================================
 /**
     Reads and Writes WAV format audio files.
 
     @see AudioFormat
+
+    @tags{Audio}
 */
 class JUCE_API  WavAudioFormat  : public AudioFormat
 {
@@ -38,7 +43,7 @@ public:
     WavAudioFormat();
 
     /** Destructor. */
-    ~WavAudioFormat();
+    ~WavAudioFormat() override;
 
     //==============================================================================
     // BWAV chunk properties:
@@ -94,6 +99,7 @@ public:
     static const char* const riffInfoBaseURL;               /**< Metadata property name used in INFO chunks. */
     static const char* const riffInfoCinematographer;       /**< Metadata property name used in INFO chunks. */
     static const char* const riffInfoComment;               /**< Metadata property name used in INFO chunks. */
+    static const char* const riffInfoComment2;              /**< Metadata property name used in INFO chunks. */
     static const char* const riffInfoComments;              /**< Metadata property name used in INFO chunks. */
     static const char* const riffInfoCommissioned;          /**< Metadata property name used in INFO chunks. */
     static const char* const riffInfoCopyright;             /**< Metadata property name used in INFO chunks. */
@@ -134,6 +140,7 @@ public:
     static const char* const riffInfoOrganisation;          /**< Metadata property name used in INFO chunks. */
     static const char* const riffInfoPart;                  /**< Metadata property name used in INFO chunks. */
     static const char* const riffInfoProducedBy;            /**< Metadata property name used in INFO chunks. */
+    static const char* const riffInfoProductName;           /**< Metadata property name used in INFO chunks. */
     static const char* const riffInfoProductionDesigner;    /**< Metadata property name used in INFO chunks. */
     static const char* const riffInfoProductionStudio;      /**< Metadata property name used in INFO chunks. */
     static const char* const riffInfoRate;                  /**< Metadata property name used in INFO chunks. */
@@ -159,6 +166,7 @@ public:
     static const char* const riffInfoThirdLanguage;         /**< Metadata property name used in INFO chunks. */
     static const char* const riffInfoTimeCode;              /**< Metadata property name used in INFO chunks. */
     static const char* const riffInfoTitle;                 /**< Metadata property name used in INFO chunks. */
+    static const char* const riffInfoTrackNo;               /**< Metadata property name used in INFO chunks. */
     static const char* const riffInfoTrackNumber;           /**< Metadata property name used in INFO chunks. */
     static const char* const riffInfoURL;                   /**< Metadata property name used in INFO chunks. */
     static const char* const riffInfoVegasVersionMajor;     /**< Metadata property name used in INFO chunks. */
@@ -180,6 +188,7 @@ public:
     Array<int> getPossibleBitDepths() override;
     bool canDoStereo() override;
     bool canDoMono() override;
+    bool isChannelLayoutSupported (const AudioChannelSet& channelSet) override;
 
     //==============================================================================
     AudioFormatReader* createReaderFor (InputStream* sourceStream,
@@ -195,6 +204,14 @@ public:
                                         const StringPairArray& metadataValues,
                                         int qualityOptionIndex) override;
 
+    AudioFormatWriter* createWriterFor (OutputStream* streamToWriteTo,
+                                        double sampleRateToUse,
+                                        const AudioChannelSet& channelLayout,
+                                        int bitsPerSample,
+                                        const StringPairArray& metadataValues,
+                                        int qualityOptionIndex) override;
+    using AudioFormat::createWriterFor;
+
     //==============================================================================
     /** Utility function to replace the metadata in a wav file with a new set of values.
 
@@ -207,3 +224,5 @@ public:
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WavAudioFormat)
 };
+
+} // namespace juce

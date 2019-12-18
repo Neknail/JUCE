@@ -24,6 +24,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 AudioProcessorPlayer::AudioProcessorPlayer (bool doDoublePrecisionProcessing)
     : isDoublePrecision (doDoublePrecisionProcessing)
 {
@@ -41,7 +44,7 @@ void AudioProcessorPlayer::setProcessor (AudioProcessor* const processorToPlay)
     {
         if (processorToPlay != nullptr && sampleRate > 0 && blockSize > 0)
         {
-            processorToPlay->setPlayConfigDetails(numInputChans, numOutputChans, sampleRate, blockSize);
+            processorToPlay->setPlayConfigDetails (numInputChans, numOutputChans, sampleRate, blockSize);
 
             bool supportsDouble = processorToPlay->supportsDoublePrecisionProcessing() && isDoublePrecision;
 
@@ -85,6 +88,15 @@ void AudioProcessorPlayer::setDoublePrecisionProcessing (bool doublePrecision)
     }
 }
 
+void AudioProcessorPlayer::setMidiOutput (MidiOutput* midiOutputToUse)
+{
+    if (midiOutput != midiOutputToUse)
+    {
+        const ScopedLock sl (lock);
+        midiOutput = midiOutputToUse;
+    }
+}
+
 //==============================================================================
 void AudioProcessorPlayer::audioDeviceIOCallback (const float** const inputChannelData,
                                                   const int numInputChannels,
@@ -110,14 +122,14 @@ void AudioProcessorPlayer::audioDeviceIOCallback (const float** const inputChann
         for (int i = 0; i < numOutputChannels; ++i)
         {
             channels[totalNumChans] = outputChannelData[i];
-            memcpy (channels[totalNumChans], inputChannelData[i], sizeof (float) * (size_t) numSamples);
+            memcpy (channels[totalNumChans], inputChannelData[i], (size_t) numSamples * sizeof (float));
             ++totalNumChans;
         }
 
         for (int i = numOutputChannels; i < numInputChannels; ++i)
         {
             channels[totalNumChans] = tempBuffer.getWritePointer (i - numOutputChannels);
-            memcpy (channels[totalNumChans], inputChannelData[i], sizeof (float) * (size_t) numSamples);
+            memcpy (channels[totalNumChans], inputChannelData[i], (size_t) numSamples * sizeof (float));
             ++totalNumChans;
         }
     }
@@ -126,19 +138,19 @@ void AudioProcessorPlayer::audioDeviceIOCallback (const float** const inputChann
         for (int i = 0; i < numInputChannels; ++i)
         {
             channels[totalNumChans] = outputChannelData[i];
-            memcpy (channels[totalNumChans], inputChannelData[i], sizeof (float) * (size_t) numSamples);
+            memcpy (channels[totalNumChans], inputChannelData[i], (size_t) numSamples * sizeof (float));
             ++totalNumChans;
         }
 
         for (int i = numInputChannels; i < numOutputChannels; ++i)
         {
             channels[totalNumChans] = outputChannelData[i];
-            zeromem (channels[totalNumChans], sizeof (float) * (size_t) numSamples);
+            zeromem (channels[totalNumChans], (size_t) numSamples * sizeof (float));
             ++totalNumChans;
         }
     }
 
-    AudioSampleBuffer buffer (channels, totalNumChans, numSamples);
+    AudioBuffer<float> buffer (channels, totalNumChans, numSamples);
 
     {
         const ScopedLock sl (lock);
@@ -159,6 +171,9 @@ void AudioProcessorPlayer::audioDeviceIOCallback (const float** const inputChann
                 {
                     processor->processBlock (buffer, incomingMidi);
                 }
+
+                if (midiOutput != nullptr)
+                    midiOutput->sendBlockOfMessagesNow (incomingMidi);
 
                 return;
             }
@@ -184,7 +199,7 @@ void AudioProcessorPlayer::audioDeviceAboutToStart (AudioIODevice* const device)
     numOutputChans = numChansOut;
 
     messageCollector.reset (sampleRate);
-    channels.calloc ((size_t) jmax (numChansIn, numChansOut) + 2);
+    channels.calloc (jmax (numChansIn, numChansOut) + 2);
 
     if (processor != nullptr)
     {
@@ -214,3 +229,5 @@ void AudioProcessorPlayer::handleIncomingMidiMessage (MidiInput*, const MidiMess
 {
     messageCollector.addMessageToQueue (message);
 }
+
+} // namespace juce

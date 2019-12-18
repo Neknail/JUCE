@@ -54,9 +54,6 @@
 #endif
 
 //==============================================================================
-namespace juce
-{
-
 #include "messages/juce_ApplicationBase.cpp"
 #include "messages/juce_DeletedAtShutdown.cpp"
 #include "messages/juce_MessageListener.cpp"
@@ -69,6 +66,7 @@ namespace juce
 #include "interprocess/juce_InterprocessConnection.cpp"
 #include "interprocess/juce_InterprocessConnectionServer.cpp"
 #include "interprocess/juce_ConnectedChildProcess.cpp"
+#include "interprocess/juce_NetworkServiceDiscovery.cpp"
 
 //==============================================================================
 #if JUCE_MAC || JUCE_IOS
@@ -103,5 +101,3 @@ namespace juce
  #include "native/juce_android_Messaging.cpp"
 
 #endif
-
-}

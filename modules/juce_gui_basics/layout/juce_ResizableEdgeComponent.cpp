@@ -24,21 +24,22 @@
   ==============================================================================
 */
 
-ResizableEdgeComponent::ResizableEdgeComponent (Component* const componentToResize,
-                                                ComponentBoundsConstrainer* const constrainer_,
-                                                Edge edge_)
+namespace juce
+{
+
+ResizableEdgeComponent::ResizableEdgeComponent (Component* componentToResize,
+                                                ComponentBoundsConstrainer* boundsConstrainer,
+                                                Edge e)
    : component (componentToResize),
-     constrainer (constrainer_),
-     edge (edge_)
+     constrainer (boundsConstrainer),
+     edge (e)
 {
     setRepaintsOnMouseActivity (true);
     setMouseCursor (isVertical() ? MouseCursor::LeftRightResizeCursor
                                  : MouseCursor::UpDownResizeCursor);
 }
 
-ResizableEdgeComponent::~ResizableEdgeComponent()
-{
-}
+ResizableEdgeComponent::~ResizableEdgeComponent() = default;
 
 //==============================================================================
 bool ResizableEdgeComponent::isVertical() const noexcept
@@ -74,7 +75,7 @@ void ResizableEdgeComponent::mouseDrag (const MouseEvent& e)
         return;
     }
 
-    Rectangle<int> newBounds (originalBounds);
+    auto newBounds = originalBounds;
 
     switch (edge)
     {
@@ -95,8 +96,8 @@ void ResizableEdgeComponent::mouseDrag (const MouseEvent& e)
     }
     else
     {
-        if (Component::Positioner* const pos = component->getPositioner())
-            pos->applyNewBounds (newBounds);
+        if (auto* p = component->getPositioner())
+            p->applyNewBounds (newBounds);
         else
             component->setBounds (newBounds);
     }
@@ -107,3 +108,5 @@ void ResizableEdgeComponent::mouseUp (const MouseEvent&)
     if (constrainer != nullptr)
         constrainer->resizeEnd();
 }
+
+} // namespace juce

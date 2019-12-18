@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -35,6 +35,8 @@
     button state changes.
 
     @see Button, ShapeButton, TextButton
+
+    @tags{GUI}
 */
 class JUCE_API  ImageButton  : public Button
 {
@@ -50,7 +52,7 @@ public:
     explicit ImageButton (const String& name = String());
 
     /** Destructor. */
-    ~ImageButton();
+    ~ImageButton() override;
 
     //==============================================================================
     /** Sets up the images to draw in various states.
@@ -129,7 +131,7 @@ public:
     /** This abstract base class is implemented by LookAndFeel classes. */
     struct JUCE_API  LookAndFeelMethods
     {
-        virtual ~LookAndFeelMethods() {}
+        virtual ~LookAndFeelMethods() = default;
 
         virtual void drawImageButton (Graphics&, Image*,
                                       int imageX, int imageY, int imageW, int imageH,
@@ -141,7 +143,7 @@ protected:
     /** @internal */
     bool hitTest (int x, int y) override;
     /** @internal */
-    void paintButton (Graphics&, bool isMouseOver, bool isButtonDown) override;
+    void paintButton (Graphics&, bool, bool) override;
 
 private:
     //==============================================================================
@@ -156,3 +158,5 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ImageButton)
 };
+
+} // namespace juce

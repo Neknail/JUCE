@@ -29,13 +29,14 @@
 
  BEGIN_JUCE_MODULE_DECLARATION
 
-  ID:               juce_blocks_basics
-  vendor:           juce
-  version:          5.0.2
-  name:             Provides low-level control over ROLI BLOCKS devices
-  description:      JUCE wrapper for low-level control over ROLI BLOCKS devices.
-  website:          http://developer.roli.com
-  license:          ISC
+  ID:                 juce_blocks_basics
+  vendor:             juce
+  version:            5.4.5
+  name:               Provides low-level control over ROLI BLOCKS devices
+  description:        JUCE wrapper for low-level control over ROLI BLOCKS devices.
+  website:            http://developer.roli.com
+  license:            ISC
+  minimumCppStandard: 14
 
   dependencies:     juce_events juce_audio_devices
 
@@ -50,29 +51,42 @@
 #include <juce_events/juce_events.h>
 #include <juce_audio_devices/juce_audio_devices.h>
 
+#if ! JUCE_HAS_CONSTEXPR
+ #ifndef JUCE_DEMO_RUNNER
+  #error "The juce_blocks_basics module requires a compiler that supports constexpr"
+ #endif
+#else
+
 namespace juce
 {
-  class TouchSurface;
-  class LEDGrid;
-  class LEDRow;
-  class StatusLight;
-  class LightRing;
-  class ControlButton;
-
-  #include "blocks/juce_Block.h"
-  #include "blocks/juce_TouchSurface.h"
-  #include "blocks/juce_LEDGrid.h"
-  #include "blocks/juce_LEDRow.h"
-  #include "blocks/juce_ControlButton.h"
-  #include "blocks/juce_TouchList.h"
-  #include "blocks/juce_StatusLight.h"
-  #include "topology/juce_Topology.h"
-  #include "topology/juce_TopologySource.h"
-  #include "topology/juce_PhysicalTopologySource.h"
-  #include "topology/juce_RuleBasedTopologySource.h"
-  #include "littlefoot/juce_LittleFootRunner.h"
-  #include "littlefoot/juce_LittleFootCompiler.h"
-  #include "littlefoot/juce_LittleFootRemoteHeap.h"
-  #include "visualisers/juce_DrumPadLEDProgram.h"
-  #include "visualisers/juce_BitmapLEDProgram.h"
+    class TouchSurface;
+    class LEDGrid;
+    class LEDRow;
+    class StatusLight;
+    class LightRing;
+    class ControlButton;
 }
+
+#include "blocks/juce_Block.h"
+#include "blocks/juce_TouchSurface.h"
+#include "blocks/juce_LEDGrid.h"
+#include "blocks/juce_LEDRow.h"
+#include "blocks/juce_ControlButton.h"
+#include "blocks/juce_TouchList.h"
+#include "blocks/juce_StatusLight.h"
+#include "blocks/juce_BlocksVersion.h"
+#include "topology/juce_Topology.h"
+#include "topology/juce_BlockGraph.h"
+#include "topology/juce_TopologySource.h"
+#include "topology/juce_PhysicalTopologySource.h"
+#include "topology/juce_RuleBasedTopologySource.h"
+#include "visualisers/juce_DrumPadLEDProgram.h"
+#include "visualisers/juce_BitmapLEDProgram.h"
+
+namespace juce
+{
+ #include "littlefoot/juce_LittleFootRunner.h"
+ #include "littlefoot/juce_LittleFootCompiler.h"
+}
+
+#endif

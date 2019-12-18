@@ -20,6 +20,9 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 MidiRPNDetector::MidiRPNDetector() noexcept
 {
 }
@@ -156,6 +159,7 @@ MidiBuffer MidiRPNGenerator::generate (int midiChannel,
     return buffer;
 }
 
+
 //==============================================================================
 //==============================================================================
 #if JUCE_UNIT_TESTS
@@ -163,7 +167,9 @@ MidiBuffer MidiRPNGenerator::generate (int midiChannel,
 class MidiRPNDetectorTests   : public UnitTest
 {
 public:
-    MidiRPNDetectorTests()  : UnitTest ("MidiRPNDetector class") {}
+    MidiRPNDetectorTests()
+        : UnitTest ("MidiRPNDetector class", UnitTestCategories::midi)
+    {}
 
     void runTest() override
     {
@@ -305,7 +311,9 @@ static MidiRPNDetectorTests MidiRPNDetectorUnitTests;
 class MidiRPNGeneratorTests   : public UnitTest
 {
 public:
-    MidiRPNGeneratorTests()  : UnitTest ("MidiRPNGenerator class") {}
+    MidiRPNGeneratorTests()
+        : UnitTest ("MidiRPNGenerator class", UnitTestCategories::midi)
+    {}
 
     void runTest() override
     {
@@ -361,11 +369,13 @@ private:
         expectEquals (result.channel, expected.channel);
         expectEquals (result.parameterNumber, expected.parameterNumber);
         expectEquals (result.value, expected.value);
-        expect (result.isNRPN == expected.isNRPN),
+        expect (result.isNRPN == expected.isNRPN);
         expect (result.is14BitValue == expected.is14BitValue);
     }
 };
 
 static MidiRPNGeneratorTests MidiRPNGeneratorUnitTests;
 
-#endif // JUCE_UNIT_TESTS
+#endif
+
+} // namespace juce

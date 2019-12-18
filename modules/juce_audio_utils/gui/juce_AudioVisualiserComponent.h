@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -40,6 +40,8 @@
     for fancy additional features that you'd like it to support! If you're building a
     real-world app that requires more powerful waveform display, you'll probably want to
     create your own component instead.
+
+    @tags{Audio}
 */
 class JUCE_API AudioVisualiserComponent  : public Component,
                                            private Timer
@@ -49,7 +51,7 @@ public:
     AudioVisualiserComponent (int initialNumChannels);
 
     /** Destructor. */
-    ~AudioVisualiserComponent();
+    ~AudioVisualiserComponent() override;
 
     /** Changes the number of channels that the visualiser stores. */
     void setNumChannels (int numChannels);
@@ -74,7 +76,7 @@ public:
         The number of channels provided here is expected to match the number of channels
         that this AudioVisualiserComponent has been told to use.
     */
-    void pushBuffer (const AudioSampleBuffer& bufferToPush);
+    void pushBuffer (const AudioBuffer<float>& bufferToPush);
 
     /** Pushes a buffer of channels data.
         The number of channels provided here is expected to match the number of channels
@@ -119,8 +121,6 @@ public:
 
 private:
     struct ChannelInfo;
-    friend struct ChannelInfo;
-    friend struct ContainerDeletePolicy<ChannelInfo>;
 
     OwnedArray<ChannelInfo> channels;
     int numSamples, inputSamplesPerBlock;
@@ -130,3 +130,5 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioVisualiserComponent)
 };
+
+} // namespace juce

@@ -24,21 +24,30 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 #if (JUCE_PLUGINHOST_AU && (JUCE_MAC || JUCE_IOS)) || DOXYGEN
 
 //==============================================================================
 /**
     Implements a plugin format manager for AudioUnits.
+
+    @tags{Audio}
 */
 class JUCE_API  AudioUnitPluginFormat   : public AudioPluginFormat
 {
 public:
     //==============================================================================
     AudioUnitPluginFormat();
-    ~AudioUnitPluginFormat();
+    ~AudioUnitPluginFormat() override;
 
     //==============================================================================
-    String getName() const override                { return "AudioUnit"; }
+    static String getFormatName()                   { return "AudioUnit"; }
+    String getName() const override                 { return getFormatName(); }
+    bool canScanForPlugins() const override         { return true; }
+    bool isTrivialToScan() const override           { return false; }
+
     void findAllTypesForFile (OwnedArray<PluginDescription>&, const String& fileOrIdentifier) override;
     bool fileMightContainThisPluginType (const String& fileOrIdentifier) override;
     String getNameOfPluginFromIdentifier (const String& fileOrIdentifier) override;
@@ -46,29 +55,25 @@ public:
     StringArray searchPathsForPlugins (const FileSearchPath&, bool recursive, bool) override;
     bool doesPluginStillExist (const PluginDescription&) override;
     FileSearchPath getDefaultLocationsToSearch() override;
-    bool canScanForPlugins() const override        { return true; }
 
 private:
     //==============================================================================
-    void createPluginInstance (const PluginDescription&,
-                               double initialSampleRate,
-                               int initialBufferSize,
-                               void* userData,
-                               void (*callback) (void*, AudioPluginInstance*, const String&)) override;
+    void createPluginInstance (const PluginDescription&, double initialSampleRate,
+                               int initialBufferSize, PluginCreationCallback) override;
+    bool requiresUnblockedMessageThreadDuringCreation (const PluginDescription&) const override;
 
-    bool requiresUnblockedMessageThreadDuringCreation (const PluginDescription&) const noexcept override;
-
-    //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioUnitPluginFormat)
 };
 
 #endif
 
 //==============================================================================
-#if MAC_OS_X_VERSION_MAX_ALLOWED < 101200
+#if (! defined (MAC_OS_X_VERSION_10_12)) || (MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_12)
 enum
 {
     /** Custom AudioUnit property used to indicate MPE support */
     kAudioUnitProperty_SupportsMPE = 58
 };
 #endif
+
+}

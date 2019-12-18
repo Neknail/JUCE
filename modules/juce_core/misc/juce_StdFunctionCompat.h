@@ -28,19 +28,19 @@
   ==============================================================================
 */
 
-#pragma once
-
 namespace std
 {
     /**
         This class provides an alternative to std::function that is compatible
         with OS X 10.6 and earlier. This will only be used in OS X versions 10.6
         and earlier and the Projucer live build.
-    */
 
+        @tags{Core}
+    */
     template <typename>
     class function;
 
+    #ifndef DOXYGEN
     template <typename Result, typename... Arguments>
     class function<Result (Arguments...)>
     {
@@ -51,7 +51,7 @@ namespace std
         /** Creates an empty function. */
         function (decltype (nullptr)) noexcept {}
 
-        /** Creates a function targetting the provided Functor. */
+        /** Creates a function targeting the provided Functor. */
         template <typename Functor>
         function (Functor f)
         {
@@ -113,7 +113,7 @@ namespace std
         /** Invokes the target of this function. */
         Result operator() (Arguments... args) const
         {
-            return (*functorHolderHelper) (args...);
+            return (*functorHolderHelper) (std::forward<Arguments> (args)...);
         }
 
         bool operator== (decltype (nullptr)) const noexcept     { return (functorHolderHelper == nullptr); }
@@ -124,7 +124,7 @@ namespace std
         template <typename ReturnType, typename... Args>
         struct FunctorHolderBase
         {
-            virtual ~FunctorHolderBase() {};
+            virtual ~FunctorHolderBase() {}
             virtual int getSize() const noexcept = 0;
             virtual void copy (void*) const = 0;
             virtual ReturnType operator()(Args...) = 0;
@@ -147,7 +147,7 @@ namespace std
 
             ReturnType operator()(Args... args) override final
             {
-                return f (args...);
+                return f (std::forward<Arguments> (args)...);
             }
 
             Functor f;
@@ -156,7 +156,7 @@ namespace std
         FunctorHolderBase<Result, Arguments...>* getFunctorStorage (int size)
         {
             return reinterpret_cast<FunctorHolderBase<Result, Arguments...>*>
-                       (size > functorHolderStackSize ? new char [size]
+                       (size > functorHolderStackSize ? new char [static_cast<unsigned long> (size)]
                                                       : &(stackFunctorStorage[0]));
         }
 
@@ -192,11 +192,7 @@ namespace std
         {
             if (functorHolderHelper != nullptr)
             {
-                if (functorHolderHelper->getSize() > functorHolderStackSize)
-                    delete[] reinterpret_cast<char*> (functorHolderHelper);
-                else
-                    functorHolderHelper->~FunctorHolderBase<Result, Arguments...>();
-
+                functorHolderHelper->~FunctorHolderBase<Result, Arguments...>();
                 functorHolderHelper = nullptr;
             }
         }
@@ -206,4 +202,5 @@ namespace std
 
         FunctorHolderBase<Result, Arguments...>* functorHolderHelper = nullptr;
     };
+    #endif
 }

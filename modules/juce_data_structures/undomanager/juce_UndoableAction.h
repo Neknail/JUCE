@@ -24,8 +24,8 @@
   ==============================================================================
 */
 
-#pragma once
-
+namespace juce
+{
 
 //==============================================================================
 /**
@@ -33,16 +33,18 @@
     and undone.
 
     @see UndoManager
+
+    @tags{DataStructures}
 */
 class JUCE_API  UndoableAction
 {
 protected:
     /** Creates an action. */
-    UndoableAction() noexcept   {}
+    UndoableAction() = default;
 
 public:
     /** Destructor. */
-    virtual ~UndoableAction()   {}
+    virtual ~UndoableAction() = default;
 
     //==============================================================================
     /** Overridden by a subclass to perform the action.
@@ -95,3 +97,5 @@ public:
     */
     virtual UndoableAction* createCoalescedAction (UndoableAction* nextAction)  { ignoreUnused (nextAction); return nullptr; }
 };
+
+} // namespace juce

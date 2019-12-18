@@ -24,11 +24,16 @@
   ==============================================================================
 */
 
+namespace juce
+{
+
 #if JUCE_WINDOWS || DOXYGEN
 
 //==============================================================================
 /**
     Audio format which uses the Windows Media codecs (Windows only).
+
+    @tags{Audio}
 */
 class WindowsMediaAudioFormat  : public AudioFormat
 {
@@ -50,6 +55,9 @@ public:
     AudioFormatWriter* createWriterFor (OutputStream*, double sampleRateToUse,
                                         unsigned int numberOfChannels, int bitsPerSample,
                                         const StringPairArray& metadataValues, int qualityOptionIndex) override;
+    using AudioFormat::createWriterFor;
 };
 
 #endif
+
+}
